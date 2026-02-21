@@ -1,7 +1,7 @@
 
-import { Order, Product, CartItem } from '../types';
+import { Order, Product, CartItem } from '../src/types';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/supabase';
-import { PRODUCTS } from '../constants';
+import { PRODUCTS } from '../src/constants';
 
 /**
  * Универсальный метод вызова Edge Functions Supabase
@@ -62,7 +62,9 @@ async function invokeFunction(functionName: string, payload: any = {}, signal?: 
   }
 }
 
-export const adminService = {
+const AI_PROVIDER = 'openrouter'; // 'openrouter' or 'supabase-genai'
+const OPENROUTER_MODEL = 'arcee-ai/trinity-large-preview:free';
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
   async checkTrinityStatus(): Promise<boolean> {
     try {
       const data = await invokeFunction('admin-ai', { action: 'ping' });
