@@ -91,8 +91,8 @@ export const Header: React.FC = () => {
                 <span>B2B / МЕРЧ</span>
             </button>
 
-            <button onClick={() => setView('chat')} className={`w-9 h-9 sm:w-12 sm:h-12 transition-transform duration-300 relative group sm:hover:scale-110 flex items-center justify-center ${view === 'chat' ? 'bg-brand-text text-brand-bg' : ''}`}>
-                <AILogo className={`w-full h-full ${view === 'chat' ? 'text-brand-bg' : 'text-brand-text'}`} />
+            <button onClick={() => setView('chat')} className={`w-9 h-9 sm:w-12 sm:h-12 transition-transform duration-300 relative group sm:hover:scale-110 flex items-center justify-center overflow-hidden border-2 rounded-full ${view === 'chat' ? 'bg-brand-text text-brand-bg border-brand-text' : 'border-transparent'}`}>
+                <img src="https://i.imgur.com/JEoOJ18.jpeg" alt="AI Chat" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/bottts/svg?seed=fallback'; }} />
             </button>
 
             <button onClick={() => setView('cart')} className={`relative group p-1 sm:p-1.5 border-2 border-brand-text transition-all ${view === 'cart' ? 'bg-brand-text text-brand-bg' : 'bg-transparent text-brand-text'}`}>
