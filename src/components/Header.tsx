@@ -53,7 +53,7 @@ export const Header: React.FC = () => {
   return (
     <>
         <header className="sticky top-0 z-50 border-b-2 border-brand-text bg-brand-bg/95 backdrop-blur-md transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-3 sm:px-8 py-2 flex justify-between items-center w-full min-h-[60px]">
+        <div className="max-w-7xl mx-auto px-[10px] py-0 flex justify-between items-center w-full min-h-[60px]">
             <div 
             className="flex items-center gap-2 sm:gap-3 cursor-pointer select-none group"
             onClick={handleLogoClick}

@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { useProductFetch } from '../../hooks/useProductFetch';
-import { useCartManagement } from '../../hooks/useCartManagement';
+import { useProductFetch } from '@/hooks/useProductFetch';
+import { useCartManagement } from '@/hooks/useCartManagement';
 import { SIZES } from '../../constants';
 import { Product } from '../../types';
 
@@ -15,8 +15,8 @@ export const ProductGrid: React.FC = () => {
 
   const filteredProducts = useMemo(() => {
     if (filter === 'all') return products;
-    if (filter === 'apparel') return products.filter(p => p.category === 'apparel' || p.category === 'longsleeve');
-    if (filter === 'gear') return products.filter(p => p.category === 'gear' || p.category === 'accessories');
+    if (filter === 'apparel') return products.filter((p: Product) => p.category === 'apparel' || p.category === 'longsleeve');
+    if (filter === 'gear') return products.filter((p: Product) => p.category === 'gear' || p.category === 'accessories');
     return products;
   }, [products, filter]);
 
@@ -45,7 +45,7 @@ export const ProductGrid: React.FC = () => {
           {error}
         </div>
       )}
-      <div className="sticky top-[60px] z-30 bg-brand-bg/90 backdrop-blur border-b-2 border-brand-text px-4 py-3 flex flex-wrap gap-4 justify-between items-center transition-colors">
+      <div className="sticky top-[60px] z-30 bg-brand-bg/90 backdrop-blur border-b-2 border-brand-text pl-[10px] pr-[12px] py-0 border-solid flex flex-wrap gap-4 justify-between items-center transition-colors">
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {(['all', 'apparel', 'gear'] as FilterType[]).map((f) => (
             <button
@@ -85,7 +85,7 @@ export const ProductGrid: React.FC = () => {
           : 'flex flex-col max-w-5xl mx-auto border-x-2 border-brand-text'
         }
       `}>
-        {filteredProducts.map((product) => (
+        {filteredProducts.map((product: Product) => (
           <ProductCard key={product.id} product={product} viewMode={viewMode} />
         ))}
       </div>
