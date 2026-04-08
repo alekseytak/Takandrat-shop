@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { useStore } from '../store';
-import { BRAND_NAME } from '../constants';
+import { useStore } from '@/store';
+import { BRAND_NAME } from '@/constants';
 import { TorusLogo } from './TorusLogo';
 import { AILogo } from './AILogo';
 

@@ -136,7 +136,7 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
           <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between mt-4">
              {!isGear && (
                 <div className="flex gap-2">
-                  {SIZES.map(size => (
+                  {SIZES.map((size: string) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
@@ -194,7 +194,7 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
       <div className="mt-auto">
         {!isGear && (
             <div className="flex gap-1 md:gap-2 mb-2 md:mb-4">
-                {SIZES.map(size => (
+                {SIZES.map((size: string) => (
                 <button
                     key={size}
                     onClick={() => setSelectedSize(size)}

@@ -1,16 +1,16 @@
 import React, { useEffect } from 'react';
-import { Header } from './components/Header';
-import { Hero } from './components/Hero';
-import { ProductGrid } from './components/Store/ProductGrid';
-import { CorporatePage } from './components/CorporatePage';
-import { Cart } from './components/Cart';
-import { Checkout } from './components/Checkout';
-import { Footer } from './components/Footer';
-import { AIChat } from './components/AIChat';
-import { InfoPage } from './components/InfoPage';
-import { Concept } from './components/Concept';
-import { AdminDashboard } from './components/Admin/AdminDashboard';
-import { useStore } from './store';
+import { Header } from '@/components/Header';
+import { Hero } from '@/components/Hero';
+import { ProductGrid } from '@/components/Store/ProductGrid';
+import { CorporatePage } from '@/components/CorporatePage';
+import { Cart } from '@/components/Cart';
+import { Checkout } from '@/components/Checkout';
+import { Footer } from '@/components/Footer';
+import { AIChat } from '@/components/AIChat';
+import { InfoPage } from '@/components/InfoPage';
+import { Concept } from '@/components/Concept';
+import { AdminDashboard } from '@/components/Admin/AdminDashboard';
+import { useStore } from '@/store';
 
 declare global {
   interface Window {

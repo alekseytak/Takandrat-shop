@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useStore } from '../store';
-import { PRODUCTS, SIZES } from '../constants';
-import { adminService } from '../services/adminService';
+import { useStore } from '@/store';
+import { PRODUCTS, SIZES } from '@/constants';
+import { adminService } from '@/services/adminService';
 import { Product } from '../types';
 
 type Message = {
