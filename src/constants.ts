@@ -1,9 +1,9 @@
 import { Product } from './types';
 
-export const BRAND_NAME = "tak and rat";
+export const BRAND_NAME = "Так энд рэт";
 export const BRAND_DESCRIPTION = "РУЧНАЯ РАБОТА. НАТУРАЛЬНАЯ КОЖА И ХЛОПОК. МИНИМАЛИЗМ И ДОЛГОВЕЧНОСТЬ.";
 
-export const CONCEPT_TITLE = " GEAR FOR THE AGE OF UNCERTAINTY";
+export const CONCEPT_TITLE = " ЭКИПИРОВКА ДЛЯ ЭПОХИ НЕОПРЕДЕЛЕННОСТИ";
 export const CONCEPT_TEXT = [
   {
     title: "АВТОНОМНОСТЬ",
@@ -32,7 +32,7 @@ export const PRODUCTS: Product[] = [
       'https://images.unsplash.com/photo-1605733513597-a8f8341084e6?auto=format&fit=crop&q=80&w=800'
     ],
     category: 'accessories',
-    features: ['Vegetable Tanned', 'Handmade Stitch', 'Autonomy Gear']
+    features: ['Растительное дубление', 'Ручной шов', 'Экипировка для автономности']
   },
   {
     id: 'b-01',
@@ -41,7 +41,7 @@ export const PRODUCTS: Product[] = [
     description: 'Кожа барсук, ширина 25мм. Регулируемый размер. Латунная пряжка. Срок изготовления: 2 дня.',
     images: ['https://images.unsplash.com/photo-1531938716357-224c16b5ace3?auto=format&fit=crop&q=80&w=800'],
     category: 'accessories',
-    features: ['Badger Leather', 'Handmade']
+    features: ['Кожа барсука', 'Ручная работа']
   },
   {
     id: 'w-03',
@@ -50,7 +50,7 @@ export const PRODUCTS: Product[] = [
     description: 'Воловья кожа, растительное дубление. 8 отделений для карт. Компактный формат для заднего кармана.',
     images: ['https://images.unsplash.com/photo-1605733513597-a8f8341084e6?auto=format&fit=crop&q=80&w=800'],
     category: 'accessories',
-    features: ['Vegetable Tanned', '8 Cards']
+    features: ['Растительное дубление', '8 карт']
   },
   {
     id: 's-07',
@@ -59,7 +59,7 @@ export const PRODUCTS: Product[] = [
     description: 'Сафьяновая кожа, 38мм. Литая латунная пряжка. Классика, которая прослужит десятилетия.',
     images: ['https://images.unsplash.com/photo-1624222247344-550fb60583dc?auto=format&fit=crop&q=80&w=800'],
     category: 'accessories',
-    features: ['Saffiano', 'Solid Brass']
+    features: ['Сафьян', 'Литая латунь']
   },
   // APPAREL
   {
@@ -69,7 +69,7 @@ export const PRODUCTS: Product[] = [
     description: 'Лонгслив. Плотность 230г/м². Усиленная горловина. Базовый слой для городских условий.',
     images: ['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&q=80&w=800'],
     category: 'longsleeve',
-    features: ['100% Cotton', '230 GSM']
+    features: ['100% Хлопок', '230 Г/М²']
   },
   {
     id: 'tr-04',
@@ -78,8 +78,8 @@ export const PRODUCTS: Product[] = [
     description: 'Лонгслив. Плотность 260г/м². Полная светомаскировка. Эффект "Heavy Weight".',
     images: ['https://images.unsplash.com/photo-1503341455253-b2e72333dbdb?auto=format&fit=crop&q=80&w=800'],
     category: 'longsleeve',
-    features: ['Heavy Cotton', '260 GSM']
+    features: ['Плотный хлопок', '260 Г/М²']
   }
 ];
 
-export const SIZES = ['M', 'L', 'XL', 'ONE SIZE'];
+export const SIZES = ['M', 'L', 'XL', 'ЕДИНЫЙ РАЗМЕР'];
