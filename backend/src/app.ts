@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { paymentRouter } from './routes/paymentsRouter';
 import { adminRouter } from './routes/adminRouter';
+import { chatRouter } from './routes/chatRouter';
 
 // Заглушки для роутов, которые еще не реализованы, чтобы сервер запускался
 const productRouter = express.Router();
@@ -33,6 +34,7 @@ app.use('/api/products', productRouter);
 app.use('/api/orders', orderRouter);
 app.use('/api/payments', paymentRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/chat', chatRouter);
 
 // ERROR HANDLER
 app.use((err: any, req: any, res: any, next: any) => {
