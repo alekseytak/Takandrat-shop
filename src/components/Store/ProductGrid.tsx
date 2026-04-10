@@ -112,7 +112,7 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
              <img 
                src={product.images[0]} 
                alt={product.name}
-               className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+               className="w-full h-full object-cover transition-all duration-500"
              />
            ) : (
              <div className="w-full h-full flex items-center justify-center bg-brand-text/10 text-[10px] font-bold">НЕТ ФОТО</div>
@@ -176,7 +176,7 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
             <img 
             src={product.images[0]} 
             alt={product.name}
-            className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500 scale-[1.01]"
+            className="w-full h-full object-cover transition-all duration-500 scale-[1.01]"
             />
         ) : (
             <div className="w-full h-full flex items-center justify-center bg-brand-text/10 font-bold uppercase text-xs">НЕТ ФОТО</div>

@@ -5,6 +5,7 @@ type ModalType = 'delivery' | 'payment' | 'return' | 'contacts' | 'donation' | '
 
 export const Footer: React.FC = () => {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const modalData = {
     delivery: {
@@ -44,8 +45,8 @@ export const Footer: React.FC = () => {
       title: "ПОДДЕРЖКА",
       lines: [
         "Развитие автономного производства.",
-        "USDT (TRC-20): TQn9Y2khSsh...xYz",
-        "BTC: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+        { label: "Solana", address: "4QoVmYDgTAH99PVWT13e77FXnWxdSUkhd42bakeJ7zBA" },
+        { label: "Ton", address: "UQCPCI52jq76GTKAZq0HHxMalghb6A_SRVJxSdU0LXpyfat7" }
       ]
     },
     legal: {
@@ -59,7 +60,16 @@ export const Footer: React.FC = () => {
     }
   };
 
-  const closeModal = () => setActiveModal(null);
+  const closeModal = () => {
+    setActiveModal(null);
+    setCopiedKey(null);
+  };
+
+  const handleCopy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
 
   return (
     <>
@@ -114,12 +124,37 @@ export const Footer: React.FC = () => {
             <button onClick={closeModal} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center border-2 border-brand-text hover:bg-brand-text hover:text-brand-bg transition-colors">✕</button>
             <h3 className="text-xl md:text-2xl font-black uppercase mb-6 tracking-tight border-b-2 border-brand-text pb-4">{modalData[activeModal].title}</h3>
             <ul className="space-y-3">
-              {modalData[activeModal].lines.map((line, idx) => (
-                <li key={idx} className="flex gap-3 items-start text-[10px] md:text-xs font-bold uppercase leading-relaxed opacity-80">
-                  <span className="w-1.5 h-1.5 bg-brand-text mt-1 flex-shrink-0"></span>
-                  <span>{line}</span>
-                </li>
-              ))}
+              {modalData[activeModal].lines.map((line, idx) => {
+                if (typeof line === 'string') {
+                  return (
+                    <li key={idx} className="flex gap-3 items-start text-[10px] md:text-xs font-bold uppercase leading-relaxed opacity-80">
+                      <span className="w-1.5 h-1.5 bg-brand-text mt-1 flex-shrink-0"></span>
+                      <span>{line}</span>
+                    </li>
+                  );
+                } else {
+                  return (
+                    <li key={idx} className="flex flex-col gap-1 text-[10px] md:text-xs font-bold uppercase leading-relaxed">
+                      <div className="flex items-center justify-between">
+                        <span className="opacity-40">{line.label}:</span>
+                        <button 
+                          onClick={() => handleCopy(line.address, line.label)}
+                          className="flex items-center gap-1 hover:opacity-60 transition-opacity text-brand-text"
+                        >
+                          <span className="text-[8px]">{copiedKey === line.label ? 'СКОПИРОВАНО' : 'КОПИРОВАТЬ'}</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                          </svg>
+                        </button>
+                      </div>
+                      <code className="bg-brand-text/5 p-2 text-[9px] break-all font-mono border border-brand-text/10">
+                        {line.address}
+                      </code>
+                    </li>
+                  );
+                }
+              })}
             </ul>
           </div>
         </div>

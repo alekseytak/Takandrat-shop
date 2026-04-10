@@ -1,6 +1,6 @@
 import { Product } from './types';
 
-export const BRAND_NAME = "Так энд рэт";
+export const BRAND_NAME = "ТАК И РАТ";
 export const BRAND_DESCRIPTION = "РУЧНАЯ РАБОТА. НАТУРАЛЬНАЯ КОЖА И ХЛОПОК. МИНИМАЛИЗМ И ДОЛГОВЕЧНОСТЬ.";
 
 export const CONCEPT_TITLE = " ЭКИПИРОВКА ДЛЯ ЭПОХИ НЕОПРЕДЕЛЕННОСТИ";

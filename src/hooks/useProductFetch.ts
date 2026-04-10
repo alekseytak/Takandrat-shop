@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Product } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { PRODUCTS } from '@/constants';
 
 export const useProductFetch = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -14,9 +15,16 @@ export const useProductFetch = () => {
         setIsLoading(true);
         const { data, error } = await supabase.from('products').select('*');
         if (error) throw error;
-        setProducts(data || []);
+        
+        if (data && data.length > 0) {
+          setProducts(data);
+        } else {
+          // Fallback to local products if table is empty
+          setProducts(PRODUCTS);
+        }
       } catch (err: any) {
-        setError(err.message || 'Failed to fetch products');
+        console.error('Supabase fetch failed, falling back to local products:', err);
+        setProducts(PRODUCTS);
       } finally {
         setIsLoading(false);
       }
