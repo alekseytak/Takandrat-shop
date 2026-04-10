@@ -59,7 +59,7 @@ export const Header: React.FC = () => {
             onClick={handleLogoClick}
             >
             <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center overflow-visible">
-                <TorusLogo className={`w-7 h-7 sm:w-9 h-9 text-brand-text transition-transform duration-500 ${logoClicks > 0 ? 'rotate-90' : ''}`} />
+                <TorusLogo className="w-7 h-7 sm:w-9 sm:h-9 text-brand-text" />
             </div>
             <span className="font-black text-sm sm:text-xl tracking-tighter uppercase text-brand-text leading-none pt-0.5 whitespace-nowrap">
                 {BRAND_NAME}

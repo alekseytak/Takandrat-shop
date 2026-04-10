@@ -15,6 +15,15 @@ export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'orders' | 'stock' | 'ai' | 'log'>('orders');
   const [loading, setLoading] = useState(false);
   const [trinityOnline, setTrinityOnline] = useState<boolean | null>(null);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    price: '',
+    description: '',
+    image_url: '',
+    category: 'apparel' as Product['category'],
+    stock_quantity: '10'
+  });
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     if (currentUser?.telegram_id && currentUser?.is_admin) {
@@ -22,6 +31,34 @@ export const AdminDashboard: React.FC = () => {
       loadData();
     }
   }, [currentUser]);
+
+  const handleCreateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser?.telegram_id) return;
+    setIsCreating(true);
+    try {
+      await adminService.createProduct({
+        ...newProduct,
+        price: parseInt(newProduct.price),
+        stock_quantity: parseInt(newProduct.stock_quantity),
+        is_visible: true
+      }, currentUser.telegram_id);
+      alert('ТОВАР ДОБАВЛЕН');
+      setNewProduct({
+        name: '',
+        price: '',
+        description: '',
+        image_url: '',
+        category: 'apparel',
+        stock_quantity: '10'
+      });
+      loadData();
+    } catch (err) {
+      alert('ОШИБКА ПРИ СОЗДАНИИ');
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   const checkStatus = async () => {
     const isOnline = await adminService.checkTrinityStatus();
@@ -88,8 +125,93 @@ export const AdminDashboard: React.FC = () => {
           )}
 
           {activeTab === 'stock' && (
-            <div className="bg-white border-2 border-black p-6 brutalist-shadow">
-               <table className="w-full text-left text-[10px] uppercase font-bold">
+            <div className="space-y-8">
+              <div className="bg-white border-2 border-black p-6 brutalist-shadow">
+                <h3 className="text-lg font-black uppercase mb-6 border-b-2 border-black pb-2">ДОБАВИТЬ НОВЫЙ ТОВАР</h3>
+                <form onSubmit={handleCreateProduct} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase mb-1 opacity-50">НАЗВАНИЕ</label>
+                      <input 
+                        required
+                        type="text" 
+                        value={newProduct.name}
+                        onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                        className="w-full border-2 border-black p-3 font-bold uppercase text-xs outline-none focus:bg-gray-50"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-black uppercase mb-1 opacity-50">ЦЕНА (₽)</label>
+                        <input 
+                          required
+                          type="number" 
+                          value={newProduct.price}
+                          onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
+                          className="w-full border-2 border-black p-3 font-bold uppercase text-xs outline-none focus:bg-gray-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-black uppercase mb-1 opacity-50">КОЛ-ВО</label>
+                        <input 
+                          required
+                          type="number" 
+                          value={newProduct.stock_quantity}
+                          onChange={(e) => setNewProduct({...newProduct, stock_quantity: e.target.value})}
+                          className="w-full border-2 border-black p-3 font-bold uppercase text-xs outline-none focus:bg-gray-50"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase mb-1 opacity-50">КАТЕГОРИЯ</label>
+                      <select 
+                        value={newProduct.category}
+                        onChange={(e) => setNewProduct({...newProduct, category: e.target.value as any})}
+                        className="w-full border-2 border-black p-3 font-bold uppercase text-xs outline-none focus:bg-gray-50"
+                      >
+                        <option value="apparel">ОДЕЖДА</option>
+                        <option value="longsleeve">ЛОНГСЛИВ</option>
+                        <option value="gear">СНАРЯЖЕНИЕ</option>
+                        <option value="accessories">АКСЕССУАРЫ</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase mb-1 opacity-50">URL ФОТО</label>
+                      <input 
+                        required
+                        type="url" 
+                        value={newProduct.image_url}
+                        onChange={(e) => setNewProduct({...newProduct, image_url: e.target.value})}
+                        className="w-full border-2 border-black p-3 font-bold uppercase text-xs outline-none focus:bg-gray-50"
+                        placeholder="https://..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase mb-1 opacity-50">ОПИСАНИЕ</label>
+                      <textarea 
+                        required
+                        rows={4}
+                        value={newProduct.description}
+                        onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                        className="w-full border-2 border-black p-3 font-bold uppercase text-xs outline-none focus:bg-gray-50 resize-none"
+                      />
+                    </div>
+                    <button 
+                      disabled={isCreating}
+                      type="submit"
+                      className="w-full bg-black text-white py-4 font-black uppercase tracking-widest text-xs hover:opacity-90 transition-all disabled:opacity-50"
+                    >
+                      {isCreating ? 'СОЗДАНИЕ...' : 'СОЗДАТЬ ТОВАР'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="bg-white border-2 border-black p-6 brutalist-shadow">
+                 <h3 className="text-lg font-black uppercase mb-6 border-b-2 border-black pb-2">ИНВЕНТАРЬ</h3>
+                 <table className="w-full text-left text-[10px] uppercase font-bold">
                   <thead className="border-b-2 border-black">
                     <tr><th className="py-2">SKU</th><th className="py-2">NAME</th><th className="py-2">STOCK</th></tr>
                   </thead>
@@ -104,6 +226,7 @@ export const AdminDashboard: React.FC = () => {
                   </tbody>
                </table>
             </div>
+          </div>
           )}
 
           {activeTab === 'ai' && <AdminAIAssistant />}
