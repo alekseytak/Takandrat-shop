@@ -27,9 +27,8 @@ export const PRODUCTS: Product[] = [
     price: 3800,
     description: 'Итальянская кожа растительного дубления. Компактный аксессуар, который со временем приобретает уникальный характер. Ручной седельный шов, вощеная нить, торцы заполированы воском.',
     images: [
-      'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1531938716357-224c16b5ace3?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1605733513597-a8f8341084e6?auto=format&fit=crop&q=80&w=800'
+      '/src/assets/images/wallet_original.webp',
+      '/src/assets/images/wallet_minimal_1781884168065.jpg'
     ],
     category: 'accessories',
     features: ['Растительное дубление', 'Ручной шов', 'Экипировка для автономности']

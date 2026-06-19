@@ -95,6 +95,7 @@ export const ProductGrid: React.FC = () => {
 
 const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ product, viewMode }) => {
   const [selectedSize, setSelectedSize] = useState(SIZES[1]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const { addItemToCart } = useCartManagement();
 
   const handleAddToCart = () => {
@@ -107,10 +108,14 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
   if (viewMode === 'list') {
     return (
       <div className="border-b-2 border-brand-text bg-brand-bg/40 flex flex-col sm:flex-row group overflow-hidden transition-colors">
-        <div className="w-full sm:w-48 h-64 sm:h-auto border-b-2 sm:border-b-0 sm:border-r-2 border-brand-text bg-brand-text/5 relative overflow-hidden flex-shrink-0">
+        <div 
+          className="w-full sm:w-48 h-64 sm:h-auto border-b-2 sm:border-b-0 sm:border-r-2 border-brand-text bg-brand-text/5 relative overflow-hidden flex-shrink-0"
+          onMouseEnter={() => { if (product.images.length > 1) setActiveImageIndex(1); }}
+          onMouseLeave={() => { setActiveImageIndex(0); }}
+        >
            {product.images.length > 0 ? (
              <img 
-               src={product.images[0]} 
+               src={product.images[activeImageIndex] || product.images[0]} 
                alt={product.name}
                className="w-full h-full object-cover transition-all duration-500"
              />
@@ -120,6 +125,20 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
             <div className="absolute top-2 left-2 bg-brand-text text-brand-bg text-[10px] font-bold px-2 py-1">
               {product.price}₽
             </div>
+
+            {product.images.length > 1 && (
+              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-10">
+                {product.images.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={(e) => { e.stopPropagation(); setActiveImageIndex(idx); }}
+                    className={`w-1.5 h-1.5 border border-brand-text transition-all ${
+                      activeImageIndex === idx ? 'bg-brand-text scale-125' : 'bg-brand-bg/60 hover:bg-brand-bg'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
         </div>
         
         <div className="p-6 flex flex-col flex-grow justify-between">
@@ -171,15 +190,33 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
         <span className="hidden md:inline">{isGear ? 'КОЖА' : '230 Г/М²'}</span>
       </div>
 
-      <div className="aspect-[4/5] bg-brand-text/5 mb-4 md:mb-6 overflow-hidden border-2 border-brand-text brutalist-shadow-sm group-hover:shadow-none transition-all relative">
+      <div 
+        className="aspect-[4/5] bg-brand-text/5 mb-4 md:mb-6 overflow-hidden border-2 border-brand-text brutalist-shadow-sm group-hover:shadow-none transition-all relative"
+        onMouseEnter={() => { if (product.images.length > 1) setActiveImageIndex(1); }}
+        onMouseLeave={() => { setActiveImageIndex(0); }}
+      >
         {product.images.length > 0 ? (
             <img 
-            src={product.images[0]} 
-            alt={product.name}
-            className="w-full h-full object-cover transition-all duration-500 scale-[1.01]"
+              src={product.images[activeImageIndex] || product.images[0]} 
+              alt={product.name}
+              className="w-full h-full object-cover transition-all duration-500 scale-[1.01]"
             />
         ) : (
             <div className="w-full h-full flex items-center justify-center bg-brand-text/10 font-bold uppercase text-xs">НЕТ ФОТО</div>
+        )}
+
+        {product.images.length > 1 && (
+          <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-10">
+            {product.images.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => { e.stopPropagation(); setActiveImageIndex(idx); }}
+                className={`w-1.5 h-1.5 border border-brand-text transition-all ${
+                  activeImageIndex === idx ? 'bg-brand-text scale-125' : 'bg-brand-bg/60 hover:bg-brand-bg'
+                }`}
+              />
+            ))}
+          </div>
         )}
       </div>
       
