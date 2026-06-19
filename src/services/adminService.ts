@@ -137,12 +137,12 @@ export const adminService = {
     }
   },
 
-  async chatWithAI(message: string, history: any[], telegramId?: number, signal?: AbortSignal) {
+  async chatWithAI(message: string, history: any[], telegramId?: number, attachments?: any[], signal?: AbortSignal) {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, history }),
+        body: JSON.stringify({ message, history, attachments }),
         signal
       });
       
@@ -154,7 +154,48 @@ export const adminService = {
       return await response.json();
     } catch (error: any) {
       console.error("Chat Error:", error);
-      return { reply: `SYSTEM ERROR: ${error.message}` };
+      throw error;
+    }
+  },
+
+  async chatWithAdminAI(message: string, history: any[], telegramId?: number, attachments?: any[], signal?: AbortSignal) {
+    try {
+      const response = await fetch('/api/admin/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, history, telegramId, attachments }),
+        signal
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        throw new Error(errorData.error || 'Admin Chat failed');
+      }
+      
+      return await response.json();
+    } catch (error: any) {
+      console.error("Admin Chat Error:", error);
+      throw error;
+    }
+  },
+
+  async fetchGoogleDriveFile(url: string, accessToken?: string) {
+    try {
+      const response = await fetch('/api/admin/drive-fetch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, accessToken })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        throw new Error(errorData.error || 'Drive File fetch failed');
+      }
+      
+      return await response.json();
+    } catch (error: any) {
+      console.error("Drive Fetch Error:", error);
+      throw error;
     }
   }
 };
