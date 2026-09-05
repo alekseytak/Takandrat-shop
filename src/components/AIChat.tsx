@@ -82,6 +82,10 @@ export const AIChat: React.FC = () => {
       if (productMatch) {
         const productId = productMatch[1].trim();
         detectedProduct = PRODUCTS.find(p => p.id === productId);
+        if (!detectedProduct) {
+          const liveProduct = await adminService.searchProducts(productId);
+          detectedProduct = liveProduct.find(p => p.id === productId || String(p.dbId) === productId);
+        }
       }
 
       setMessages(prev => [...prev, {
