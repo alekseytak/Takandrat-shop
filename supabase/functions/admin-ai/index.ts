@@ -50,6 +50,22 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ order_id: order.id }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    if (action === 'search' || action === 'fetch_stock') {
+      const query = String(payload?.query || '').trim();
+      let request = supabaseClient.from('products').select('*').order('id', { ascending: true });
+      if (action === 'search' && !payload?.include_hidden) request = request.eq('is_visible', true);
+      if (query) request = request.ilike('name', `%${query}%`);
+      const { data, error } = await request;
+      if (error) throw error;
+      return new Response(JSON.stringify(action === 'fetch_stock' ? { stock: data } : { products: data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (action === 'fetch_orders') {
+      const { data, error } = await supabaseClient.from('orders').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return new Response(JSON.stringify(data || []), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     if (action === 'chat') {
       const { message, history } = payload;
       
