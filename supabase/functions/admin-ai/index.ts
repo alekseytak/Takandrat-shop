@@ -21,6 +21,35 @@ Deno.serve(async (req: Request) => {
 
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
+    if (action === 'create_order') {
+      const { telegram_id, customer_name, phone, address, items } = payload || {};
+      if (!customer_name || !phone || !address || !Array.isArray(items) || items.length === 0) {
+        return new Response(JSON.stringify({ error: 'INVALID_ORDER' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const total = items.reduce((sum: number, item: any) => sum + Number(item.price_cents || 0) * Number(item.quantity || 0), 0);
+      const { data: order, error } = await supabaseClient.from('orders').insert({
+        telegram_id: telegram_id || null,
+        customer_info: { fullName: customer_name, phone },
+        shipping_address: address,
+        items,
+        total_price: total / 100,
+        status: 'new',
+        payment_method: 'pending',
+        consent: true
+      }).select('id').single();
+      if (error) throw error;
+
+      const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
+      const adminChatId = Deno.env.get('TELEGRAM_ADMIN_CHAT_ID');
+      if (botToken && adminChatId) {
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: adminChatId, text: `НОВЫЙ ЗАКАЗ #${order.id}\n${customer_name}\n${phone}\n${address}\nСумма: ${(total / 100).toFixed(2)} ₽` })
+        });
+      }
+      return new Response(JSON.stringify({ order_id: order.id }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     if (action === 'chat') {
       const { message, history } = payload;
       

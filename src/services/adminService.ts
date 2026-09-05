@@ -79,7 +79,7 @@ export const adminService = {
     address: string;
     items: { product_id: string; quantity: number; price_cents: number }[];
   }): Promise<{ order_id: string }> {
-    return await invokeFunction('create_order', orderPayload);
+    return await invokeFunction('admin-ai', { action: 'create_order', payload: orderPayload });
   },
 
   async fetchOrders(telegramId: number): Promise<Order[]> {
