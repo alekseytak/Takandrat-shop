@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStore } from '@/store';
+import { adminService } from '@/services/adminService';
 
 export const Checkout: React.FC = () => {
   const { cart, setView, clearCart } = useStore();
@@ -7,20 +8,46 @@ export const Checkout: React.FC = () => {
 
   const SOLANA_ADDRESS = '4QoVmYDgTAH99PVWT13e77FXnWxdSUkhd42bakeJ7zBA';
 
-  const handleCheckout = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleCheckout = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    alert('Заказ оформлен! Ожидайте подтверждения транзакции.');
-    clearCart();
-    setView('shop');
+    setError(null);
+    setIsSubmitting(true);
+    const form = new FormData(e.currentTarget);
+    const telegramId = useStore.getState().currentUser?.telegram_id;
+
+    try {
+      const result = await adminService.createOrder({
+        telegram_id: telegramId,
+        customer_name: String(form.get('name') || ''),
+        phone: String(form.get('phone') || form.get('email') || ''),
+        address: String(form.get('address') || ''),
+        items: cart.map(item => ({
+          product_id: String(item.db_id ?? item.id),
+          quantity: item.quantity,
+          price_cents: Math.round(item.price * 100)
+        }))
+      });
+      alert(`Заказ ${result.order_id} принят. Ожидайте подтверждения.`);
+      clearCart();
+      setView('shop');
+    } catch (err: any) {
+      setError(err?.message || 'Не удалось оформить заказ. Попробуйте ещё раз.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="p-4 max-w-2xl mx-auto w-full">
       <h2 className="text-2xl font-black uppercase mb-6">Оформление заказа</h2>
       <form onSubmit={handleCheckout} className="flex flex-col gap-4">
-        <input required type="text" placeholder="Имя" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
-        <input required type="email" placeholder="Email" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
-        <input required type="text" placeholder="Адрес доставки" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
+        <input required name="name" type="text" placeholder="Имя" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
+        <input required name="phone" type="tel" placeholder="Телефон" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
+        <input required name="email" type="email" placeholder="Email" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
+        <input required name="address" type="text" placeholder="Адрес доставки" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
         
         <div className="mt-6 pt-6 border-t-2 border-brand-text flex justify-between items-center">
           <span className="font-black uppercase">К оплате:</span>
@@ -50,8 +77,9 @@ export const Checkout: React.FC = () => {
           </p>
         </div>
         
-        <button type="submit" className="w-full bg-brand-text text-brand-bg py-4 font-black uppercase tracking-widest mt-4 hover:opacity-90 transition-opacity">
-          ПОДТВЕРДИТЬ ЗАКАЗ
+        {error && <p role="alert" className="border-2 border-red-600 p-3 text-xs font-bold text-red-600">{error}</p>}
+        <button disabled={isSubmitting} type="submit" className="w-full bg-brand-text text-brand-bg py-4 font-black uppercase tracking-widest mt-4 hover:opacity-90 transition-opacity disabled:opacity-50">
+          {isSubmitting ? 'ОТПРАВКА...' : 'ПОДТВЕРДИТЬ ЗАКАЗ'}
         </button>
       </form>
     </div>

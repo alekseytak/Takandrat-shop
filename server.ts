@@ -30,6 +30,13 @@ function getGeminiClient() {
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  const adminTelegramIds = new Set(
+    (process.env.ADMIN_TELEGRAM_IDS || '').split(',').map(id => id.trim()).filter(Boolean)
+  );
+
+  function isAdminTelegramId(value: unknown) {
+    return typeof value === 'string' && adminTelegramIds.has(value);
+  }
 
   app.use(cors());
   app.use(express.json({ limit: '15mb' }));
@@ -201,6 +208,10 @@ async function startServer() {
 
   app.post('/api/admin/chat', async (req, res) => {
     const { message, history, telegramId, attachments } = req.body;
+
+    if (!isAdminTelegramId(String(telegramId ?? ''))) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
 
     const systemPrompt = `ПРОТОКОЛ АДМИНИСТРАТИВНОГО ИНТЕРФЕЙСА: TRINITY ADMIN CORE (Tak and Rat)
 Ты — TRINITY 4.0 ИИ-Администратор магазина премиальной кожи "Tak and Rat" (Ателье Кожи).
@@ -549,9 +560,8 @@ async function startServer() {
     const { name, price, description, image_url, category, stock_quantity } = req.body;
     const telegramId = req.headers['x-telegram-id'];
 
-    // В реальном приложении здесь должна быть проверка telegramId в БД на права админа
-    if (!telegramId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    if (!isAdminTelegramId(String(telegramId ?? ''))) {
+      return res.status(403).json({ error: 'Forbidden' });
     }
 
     try {
