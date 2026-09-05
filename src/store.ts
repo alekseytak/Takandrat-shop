@@ -18,7 +18,6 @@ interface GlobalStore {
 
   currentUser: UserProfile | null;
   syncUser: (tgUser: any) => Promise<void>;
-  forceAdmin: () => void;
 
   lastAiMetrics: AiMetrics;
   setAiMetrics: (metrics: AiMetrics) => void;
@@ -74,12 +73,6 @@ export const useStore = create<GlobalStore>((set, get) => ({
       }
     } catch (err) { console.warn(err); }
   },
-
-  forceAdmin: () => set((state) => ({
-    currentUser: state.currentUser 
-      ? { ...state.currentUser, is_admin: true } 
-      : { telegram_id: 0, is_admin: true }
-  })),
 
   lastAiMetrics: { total: 0.982, c: 0.65, d: 0.35, b: 0.88 },
   setAiMetrics: (metrics) => set({ lastAiMetrics: metrics })
