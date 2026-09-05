@@ -5,16 +5,11 @@ import { BRAND_NAME } from '@/constants';
 import { TorusLogo } from './TorusLogo';
 import { AILogo } from './AILogo';
 
-const ADMIN_PIN = "7476";
-
 export const Header: React.FC = () => {
-  const { view, setView, cart, currentUser, forceAdmin, theme, toggleTheme } = useStore();
+  const { view, setView, cart, currentUser, theme, toggleTheme } = useStore();
   const totalItemsInCart = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const [logoClicks, setLogoClicks] = useState(0);
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [pinInput, setPinInput] = useState('');
-  const [pinError, setPinError] = useState(false);
 
   useEffect(() => {
     if (logoClicks > 0 && logoClicks < 5) {
@@ -27,27 +22,12 @@ export const Header: React.FC = () => {
     const newCount = logoClicks + 1;
     setLogoClicks(newCount);
 
-    if (newCount >= 5) {
-      setShowPinModal(true);
+    if (newCount >= 5 && currentUser?.is_admin) {
+      setView('admin');
       setLogoClicks(0);
     } else {
         setView('shop');
     }
-  };
-
-  const handlePinSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      if (pinInput === ADMIN_PIN) {
-          forceAdmin();
-          setView('admin');
-          setShowPinModal(false);
-          setPinInput('');
-          setPinError(false);
-      } else {
-          setPinError(true);
-          setPinInput('');
-          setTimeout(() => setPinError(false), 1000);
-      }
   };
 
   return (
@@ -103,18 +83,6 @@ export const Header: React.FC = () => {
         </div>
         </header>
 
-        {showPinModal && (
-            <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 text-black">
-                <div className="bg-white border-4 border-black p-8 w-full max-w-xs brutalist-shadow relative">
-                    <button onClick={() => setShowPinModal(false)} className="absolute top-2 right-2 text-black hover:bg-black hover:text-white p-1 px-3 font-black">✕</button>
-                    <h2 className="text-xl font-black uppercase mb-6 tracking-widest text-center">ПРОВЕРКА БЕЗОПАСНОСТИ</h2>
-                    <form onSubmit={handlePinSubmit} className="flex flex-col gap-4">
-                        <input type="password" maxLength={4} autoFocus value={pinInput} onChange={(e) => setPinInput(e.target.value)} placeholder="PIN" className={`w-full text-center text-4xl font-black tracking-[0.5em] p-4 border-2 outline-none transition-all ${pinError ? 'border-red-600 bg-red-100 text-red-600' : 'border-black focus:bg-black focus:text-white'}`} />
-                        <button type="submit" className="bg-black text-white py-4 font-bold uppercase tracking-widest hover:bg-gray-800">ВОЙТИ В СИСТЕМУ</button>
-                    </form>
-                </div>
-            </div>
-        )}
     </>
   );
 };
