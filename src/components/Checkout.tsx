@@ -21,8 +21,8 @@ export const Checkout: React.FC = () => {
     try {
       const result = await adminService.createOrder({
         telegram_id: telegramId,
-        customer_name: String(form.get('name') || ''),
-        phone: String(form.get('phone') || form.get('email') || ''),
+        customer_name: useStore.getState().currentUser?.first_name || 'Покупатель Telegram',
+        phone: '',
         address: String(form.get('address') || ''),
         items: cart.map(item => ({
           product_id: String(item.db_id ?? item.id),
@@ -44,10 +44,7 @@ export const Checkout: React.FC = () => {
     <div className="p-4 max-w-2xl mx-auto w-full">
       <h2 className="text-2xl font-black uppercase mb-6">Оформление заказа</h2>
       <form onSubmit={handleCheckout} className="flex flex-col gap-4">
-        <input required name="name" type="text" placeholder="Имя" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
-        <input required name="phone" type="tel" placeholder="Телефон" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
-        <input required name="email" type="email" placeholder="Email" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
-        <input required name="address" type="text" placeholder="Адрес доставки" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
+        <input required name="address" type="text" placeholder="Адрес ПВЗ (Яндекс / Ozon / СДЭК)" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
         
         <div className="mt-6 pt-6 border-t-2 border-brand-text flex justify-between items-center">
           <span className="font-black uppercase">К оплате:</span>

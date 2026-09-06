@@ -23,13 +23,13 @@ Deno.serve(async (req: Request) => {
 
     if (action === 'create_order') {
       const { telegram_id, customer_name, phone, address, items } = payload || {};
-      if (!customer_name || !phone || !address || !Array.isArray(items) || items.length === 0) {
+      if (!address || !Array.isArray(items) || items.length === 0) {
         return new Response(JSON.stringify({ error: 'INVALID_ORDER' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       const total = items.reduce((sum: number, item: any) => sum + Number(item.price_cents || 0) * Number(item.quantity || 0), 0);
       const { data: order, error } = await supabaseClient.from('orders').insert({
         telegram_id: telegram_id || null,
-        customer_info: { fullName: customer_name, phone },
+        customer_info: { telegram_id: telegram_id || null },
         shipping_address: address,
         items,
         total_price: total / 100,
