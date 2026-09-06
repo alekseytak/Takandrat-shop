@@ -26,8 +26,9 @@ export const PRODUCTS: Product[] = [
     price: 2900,
     description: 'Компактный картхолдер из натуральной кожи растительного дубления. Ручной седельный шов, вощёная нить, обработанные торцы. Вещь, которая стареет вместе с владельцем.',
     images: [
-      '/src/assets/images/wallet_original.webp',
-      '/src/assets/images/wallet_minimal_1781884168065.jpg'
+      '/products/01.jpg',
+      '/products/02.jpg',
+      '/products/03.jpg'
     ],
     category: 'accessories',
     features: ['Растительное дубление', 'Ручной шов', 'Экипировка для автономности']
@@ -37,7 +38,7 @@ export const PRODUCTS: Product[] = [
     name: 'Чехол для зажигалки L-01',
     price: 1900,
     description: 'Чехол из плотной натуральной кожи для повседневной зажигалки. Ручной шов и латунная кнопка. Небольшой инструмент без лишнего декора.',
-    images: [],
+    images: ['/products/04.jpg', '/products/05.jpg', '/products/06.jpg'],
     category: 'accessories',
     features: ['Натуральная кожа', 'Ручной шов', 'Латунная кнопка']
   },
@@ -46,7 +47,7 @@ export const PRODUCTS: Product[] = [
     name: 'Чехол для зажигалки L-02',
     price: 2200,
     description: 'Усиленная версия кожаного чехла для зажигалки. Плотная кожа, ручная прошивка, надёжная посадка. Сделан для кармана, а не для витрины.',
-    images: [],
+    images: ['/products/07.jpg', '/products/08.jpg', '/products/09.jpg'],
     category: 'accessories',
     features: ['Плотная кожа', 'Ручной шов', 'Усиленная конструкция']
   },
@@ -55,7 +56,7 @@ export const PRODUCTS: Product[] = [
     name: 'Ремень S-07',
     price: 3200,
     description: 'Ремень из цельной натуральной кожи с литой латунной пряжкой. Ручная обработка и честная конструкция без сезонности. Размер подбирается по мерке.',
-    images: [],
+    images: ['/products/10.jpg', '/products/11.jpg', '/products/12.jpg'],
     category: 'accessories',
     features: ['Сафьян', 'Литая латунь']
   },
@@ -65,7 +66,7 @@ export const PRODUCTS: Product[] = [
     name: 'Лонгслив ASH GREY',
     price: 3500,
     description: 'Плотный хлопковый лонгслив серого цвета. Усиленная горловина, спокойный силуэт, базовый слой для города. Без сезонного шума.',
-    images: [],
+    images: ['/products/13.jpg', '/products/14.jpg', '/products/15.jpg'],
     category: 'longsleeve',
     features: ['100% Хлопок', '230 Г/М²']
   },
@@ -74,7 +75,7 @@ export const PRODUCTS: Product[] = [
     name: 'Лонгслив HEAVY BLACK',
     price: 3500,
     description: 'Плотный чёрный хлопковый лонгслив. Усиленная горловина и вес ткани, рассчитанный на ежедневную носку. Форма следует функции.',
-    images: [],
+    images: ['/products/16.jpg', '/products/17.jpg', '/products/18.jpg'],
     category: 'longsleeve',
     features: ['Плотный хлопок', '260 Г/М²']
   }
