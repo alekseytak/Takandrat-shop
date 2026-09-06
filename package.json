@@ -15,6 +15,7 @@
     "@react-three/drei": "^9.96.1",
     "@react-three/fiber": "^8.15.12",
     "@supabase/supabase-js": "^2.39.7",
+    "@vercel/node": "^5.5.28",
     "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
