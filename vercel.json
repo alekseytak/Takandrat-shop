@@ -2,7 +2,7 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api/|assets/|products/|avatar\\.jpg|favicon\\.ico).*)",
       "destination": "/index.html"
     }
   ]
