@@ -38,6 +38,15 @@ async function startServer() {
     return typeof value === 'string' && adminTelegramIds.has(value);
   }
 
+  app.get('/api/payment-details', (_req, res) => {
+    res.json({
+      card: process.env.PAYMENT_CARD_NUMBER || null,
+      cardRecipient: process.env.PAYMENT_CARD_RECIPIENT || null,
+      crypto: process.env.PAYMENT_CRYPTO_ADDRESS || null,
+      cryptoNetwork: process.env.PAYMENT_CRYPTO_NETWORK || null
+    });
+  });
+
   app.use(cors());
   app.use(express.json({ limit: '15mb' }));
   app.use(express.urlencoded({ limit: '15mb', extended: true }));
