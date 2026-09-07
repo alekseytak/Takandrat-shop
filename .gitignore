@@ -38,3 +38,11 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Additional secret protection
+**/.env.local
+**/.env.production
+.gitattributes
+
+# Vercel metadata
+.vercel
