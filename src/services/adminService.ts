@@ -1,31 +1,25 @@
-
 import { Order, Product, CartItem } from '../types';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/supabase';
 import { PRODUCTS } from '../constants';
 
 /**
- * Универсальный метод вызова Edge Functions Supabase
+ * Universal method for calling Supabase Edge Functions
  */
-async function invokeFunction(functionName: string, payload: any = {}, signal?: AbortSignal, retryCount = 0): Promise<any> {
+async function invokeFunction(functionName: string, payload: any = {}, signal?: AbortSignal): Promise<any> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error("SUPABASE_CONFIG_INCOMPLETE");
   }
 
   const projectRef = SUPABASE_URL.split('//')[1]?.split('.')[0];
-  const endpoints = [
-    `${SUPABASE_URL}/functions/v1/${functionName}`,
-    `https://${projectRef}.functions.supabase.co/${functionName}`
-  ];
-
-  const currentEndpoint = endpoints[retryCount % endpoints.length];
+  const endpoint = `${SUPABASE_URL}/functions/v1/${functionName}`;
 
   try {
-    const timeoutSignal = AbortSignal.timeout(20000); 
-    const combinedSignal = signal 
+    const timeoutSignal = AbortSignal.timeout(20000);
+    const combinedSignal = signal
       ? (AbortSignal as any).any([signal, timeoutSignal])
       : timeoutSignal;
 
-    const response = await fetch(currentEndpoint, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -44,16 +38,12 @@ async function invokeFunction(functionName: string, payload: any = {}, signal?: 
     return await response.json();
   } catch (err: any) {
     if (err.name === 'AbortError' && !signal?.aborted) {
-      throw new Error("TRINITY_TIMEOUT: Обработка запроса заняла слишком много времени.");
-    }
-    
-    if (retryCount < endpoints.length - 1) {
-      return invokeFunction(functionName, payload, signal, retryCount + 1);
+      throw new Error("TRINITY_TIMEOUT: Request processing took too long.");
     }
 
     const isNetworkError = err.message.includes('Failed to fetch') || err.message.includes('NetworkError');
     if (isNetworkError) {
-      const netErr = new Error("COMM_LINK_FAILURE: Облачное ядро недоступно. Проверьте соединение.");
+      const netErr = new Error("COMM_LINK_FAILURE: Cloud core is unavailable. Check connection.");
       (netErr as any).isNetworkBlock = true;
       throw netErr;
     }
@@ -91,17 +81,17 @@ export const adminService = {
     }
   },
 
-  async fetchAdminStock(secret: string): Promise<any> {
+  async fetchAdminStock(telegramId: number): Promise<any> {
     try {
-      return await invokeFunction('admin-ai', { action: 'fetch_stock', payload: { secret } });
+      return await invokeFunction('admin-ai', { action: 'fetch_stock', payload: { telegramId } });
     } catch (error) {
       return { stock: [] };
     }
   },
 
-  async searchProducts(query: string = '', isAdmin: boolean = false, signal?: AbortSignal): Promise<Product[]> {
+  async searchProducts(query: string = '', isAdmin: boolean = false, signal?: AbortSignal, telegramId?: number): Promise<Product[]> {
     try {
-      const data = await invokeFunction('admin-ai', { action: 'search', payload: { query, include_hidden: isAdmin } }, signal);
+      const data = await invokeFunction('admin-ai', { action: 'search', payload: { query, include_hidden: isAdmin, telegramId } }, signal);
       if (!data?.products) throw new Error("EMPTY");
       return data.products.map((item: any) => ({
         id: item.id.toString(),
@@ -123,7 +113,7 @@ export const adminService = {
     try {
       const response = await fetch('/api/admin/products', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'x-telegram-id': telegramId.toString()
         },
@@ -139,9 +129,15 @@ export const adminService = {
 
   async chatWithAI(message: string, history: any[], telegramId?: number, attachments?: any[], signal?: AbortSignal) {
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      };
+      if (telegramId) {
+        headers['x-shop-key'] = telegramId.toString();
+      }
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ message, history, attachments }),
         signal
       });

@@ -95,3 +95,38 @@ curl https://YOUR-DOMAIN/api/payment-details
 ## Ограничения текущей production-версии
 
 На Vercel из `server.ts` не запускаются Express-маршруты. Production-ready endpoint в этом репозитории сейчас: `/api/payment-details`. Заказы и админ-операции должны выполняться через Supabase Edge Functions. Для AI chat потребуется отдельная Vercel Function или вызов Supabase Edge Function.
+
+## 🚨 Incident Response: rotated keys
+
+If a secret key has been committed to Git or otherwise exposed:
+
+1. **Immediate rotation**: Go to your provider dashboard (Supabase/Vercel/Google Cloud/AWS) and rotate the exposed key immediately.
+2. **History rewrite**: Use `git filter-repo` to rewrite Git history, replacing the old key value with `REDACTED` or simply removing it.
+3. **Regenerate environment variables**: Update your Vercel and Supabase environment variables with the new rotated keys.
+
+**Note**: The OpenRouter key previously committed in `supabase/.env.example` on `Sat Feb 21 15:05:30 2026 +0300` has been rotated. The file now contains only a placeholder. Please regenerate a new OpenRouter key and add it to your Supabase Secrets or environment variables as needed.
+
+## Updated Environment Variables
+
+The following environment variables have been updated:
+
+- `FRONTEND_URL`: Web app URL for bot button
+- `CHAT_SHARED_SECRET`: Secret for chat authentication  
+- `TELEGRAM_WEBHOOK_SECRET`: Secret for Telegram webhook verification
+
+## 💡 Key Rotation Checklist
+
+- [ ] Replace all leaked OpenRouter API key in Supabase Secrets
+- [ ] Update Vercel Environment variables if card/payment secrets were exposed
+- [ ] Run `git filter-repo` to rewrite history
+- [ ] Verify no secrets remain in Git history
+- [ ] Confirm environment variables are properly secured
+
+## 🔐 Security Hardening
+
+- Added `.githooks/pre-commit` with regex patterns to block commits of common secret patterns
+- Configured `.gitignore` to prevent accidental commit of environment files
+- Generated `SECURITY.md` with security policies and contacts
+- Set up `core.hooksPath` configuration (see `.githooks/README.md`)
+
+> Always keep your environment variables and secrets secure. Use version control only for placeholders, never for actual secrets.

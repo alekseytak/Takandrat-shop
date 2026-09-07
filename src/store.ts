@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { CartItem, Product, UserProfile, AiMetrics } from './types';
 import { supabase } from './lib/supabase';
@@ -63,14 +62,12 @@ export const useStore = create<GlobalStore>((set, get) => ({
     };
     set({ currentUser: profile });
     try {
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('*')
-        .eq('telegram_id', tgUser.id)
-        .single();
-      if (existingUser) {
-        set({ currentUser: { ...profile, ...existingUser } });
-      }
+      await supabase.from('users').upsert(
+        { telegram_id: tgUser.id, username: tgUser.username, first_name: tgUser.first_name, last_name: tgUser.last_name, is_admin: false },
+        { onConflict: 'telegram_id', ignoreDuplicates: true }
+      );
+      const { data: existingUser } = await supabase.from('users').select('*').eq('telegram_id', tgUser.id).single();
+      if (existingUser) set({ currentUser: { ...profile, ...existingUser } });
     } catch (err) { console.warn(err); }
   },
 
