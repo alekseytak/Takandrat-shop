@@ -1,6 +1,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.1";
 import { GoogleGenAI, Type } from "https://esm.sh/@google/genai@1.40.0";
+import { buildOrder } from "./order.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,16 +24,37 @@ Deno.serve(async (req: Request) => {
 
     if (action === 'create_order') {
       const { telegram_id, customer_name, phone, address, items } = payload || {};
-      if (!address || !Array.isArray(items) || items.length === 0) {
-        return new Response(JSON.stringify({ error: 'INVALID_ORDER' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (typeof address !== 'string' || address.trim().length === 0) {
+        return new Response(JSON.stringify({ error: 'INVALID_ORDER', reason: 'EMPTY_ADDRESS' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-      const total = items.reduce((sum: number, item: any) => sum + Number(item.price_cents || 0) * Number(item.quantity || 0), 0);
+
+      // Цене, количеству и наличию из браузера не верим: их диктует каталог.
+      // Раньше сумма считалась по price_cents из запроса, то есть любой мог
+      // заказать ремень за копейку. Проверки живут в order.ts и покрыты тестом.
+      const requestedIds = (Array.isArray(items) ? items : [])
+        .map((item: any) => String(item?.product_id ?? '').trim())
+        .filter((id: string) => id.length > 0);
+      let catalog: any[] = [];
+      if (requestedIds.length > 0) {
+        const { data, error: catalogError } = await supabaseClient
+          .from('products')
+          .select('*')
+          .in('id', requestedIds);
+        if (catalogError) throw catalogError;
+        catalog = data ?? [];
+      }
+
+      const built = buildOrder(items, catalog);
+      if (!built.ok) {
+        return new Response(JSON.stringify({ error: 'INVALID_ORDER', reason: built.reason, detail: built.detail ?? null }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       const { data: order, error } = await supabaseClient.from('orders').insert({
         telegram_id: telegram_id || null,
         customer_info: { telegram_id: telegram_id || null },
-        shipping_address: address,
-        items,
-        total_price: total / 100,
+        shipping_address: address.trim(),
+        items: built.lines,
+        total_price: built.totalCents / 100,
         status: 'new',
         payment_method: 'pending',
         consent: true
@@ -42,12 +64,15 @@ Deno.serve(async (req: Request) => {
       const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
       const adminChatId = Deno.env.get('TELEGRAM_ADMIN_CHAT_ID');
       if (botToken && adminChatId) {
+        const composition = built.lines
+          .map((line) => `${line.name || line.product_id}${line.size ? ` / ${line.size}` : ''} × ${line.quantity}`)
+          .join('\n');
         await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: adminChatId, text: `НОВЫЙ ЗАКАЗ #${order.id}\n${customer_name}\n${phone}\n${address}\nСумма: ${(total / 100).toFixed(2)} ₽` })
+          body: JSON.stringify({ chat_id: adminChatId, text: `НОВЫЙ ЗАКАЗ #${order.id}\n${customer_name}\n${phone}\n${address}\n${composition}\nСумма: ${(built.totalCents / 100).toFixed(2)} ₽` })
         });
       }
-      return new Response(JSON.stringify({ order_id: order.id }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ order_id: order.id, total: built.totalCents / 100 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     if (action === 'search' || action === 'fetch_stock') {

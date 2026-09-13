@@ -1,0 +1,199 @@
+#!/usr/bin/env node
+/**
+ * Сквозная проверка витрины, корзины и оформления в настоящем браузере.
+ *
+ * Запуск (нужен работающий магазин):
+ *   npm run dev            # в одном терминале
+ *   node scripts/shop-smoke.mjs
+ *
+ * Проверка ходит по магазину как покупатель: находит товар, кладёт в корзину,
+ * открывает оформление и убеждается, что при недоступном сервере покупатель
+ * видит понятную причину, а корзина не пропадает. Никакого реального заказа
+ * не создаётся: сервер заказов намеренно не поднят.
+ */
+import { spawn } from 'node:child_process';
+import { setTimeout as sleep } from 'node:timers/promises';
+
+const CHROME = process.env.CHROME_PATH
+  || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const SHOP_URL = process.env.SHOP_URL || 'http://127.0.0.1:3000/';
+const PORT = Number(process.env.CDP_PORT || 9333);
+const PROFILE = '/tmp/shop-smoke-profile';
+
+let passed = 0;
+const failures = [];
+const check = (name, ok, detail = '') => {
+  if (ok) { passed += 1; console.log(`  ок   ${name}`); }
+  else { failures.push(`${name}${detail ? ` — ${detail}` : ''}`); console.log(`  ПРОВАЛ ${name}${detail ? ` — ${detail}` : ''}`); }
+};
+
+const chrome = spawn(CHROME, [
+  '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
+  `--remote-debugging-port=${PORT}`, `--user-data-dir=${PROFILE}`, 'about:blank',
+], { stdio: 'ignore' });
+
+const stop = () => { try { chrome.kill('SIGKILL'); } catch {} };
+
+try {
+  // Ждём, пока Chrome поднимет отладочный порт.
+  let target = null;
+  for (let attempt = 0; attempt < 40 && !target; attempt += 1) {
+    await sleep(250);
+    try {
+      const list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json();
+      target = list.find((item) => item.type === 'page');
+    } catch { /* порт ещё не слушает */ }
+  }
+  if (!target) throw new Error('Chrome не поднял отладочный порт');
+
+  const ws = new WebSocket(target.webSocketDebuggerUrl);
+  await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
+
+  let nextId = 0;
+  const pending = new Map();
+  ws.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    if (message.id && pending.has(message.id)) {
+      pending.get(message.id)(message);
+      pending.delete(message.id);
+    }
+    // alert() в headless-браузере блокирует страницу — закрываем его сами.
+    if (message.method === 'Page.javascriptDialogOpening') {
+      send('Page.handleJavaScriptDialog', { accept: true });
+    }
+  };
+  const send = (method, params = {}) => new Promise((resolve, reject) => {
+    const id = ++nextId;
+    pending.set(id, (message) => (message.error ? reject(new Error(`${method}: ${message.error.message}`)) : resolve(message.result)));
+    ws.send(JSON.stringify({ id, method, params }));
+  });
+
+  await send('Page.enable');
+  await send('Runtime.enable');
+
+  const evaluate = async (expression) => {
+    const result = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
+    if (result.exceptionDetails) {
+      const reason = result.exceptionDetails.exception?.description
+        || result.exceptionDetails.text || 'неизвестная ошибка';
+      throw new Error(`выражение упало: ${reason}\n    ${expression.slice(0, 160)}`);
+    }
+    return result.result?.value;
+  };
+
+  const waitFor = async (expression, label, timeout = 25000) => {
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      if (await evaluate(expression)) return true;
+      await sleep(250);
+    }
+    console.log(`       (не дождались: ${label})`);
+    return false;
+  };
+
+  // body бывает null, пока документ не разобран: спрашиваем безопасно.
+  const text = () => evaluate("document.body ? document.body.innerText : ''");
+  /**
+   * Сравнение без учёта регистра: innerText отдаёт текст уже прописными, как
+   * его показывает CSS, а не как он записан в разметке.
+   */
+  const contains = (haystack, needle) => String(haystack).toUpperCase().includes(needle.toUpperCase());
+  const click = async (label) => evaluate(`(() => {
+    const wanted = ${JSON.stringify(label)}.toUpperCase();
+    const button = [...document.querySelectorAll('button')]
+      .find((b) => b.textContent.replace(/\\s+/g, ' ').trim().toUpperCase().includes(wanted));
+    if (!button) return 'НЕ НАЙДЕНА';
+    button.click();
+    return 'нажата';
+  })()`);
+
+  console.log(`Проверяю магазин ${SHOP_URL}`);
+  await send('Page.navigate', { url: SHOP_URL });
+  const loaded = await waitFor(`document.readyState === 'complete'`, 'загрузка страницы', 30000);
+  check('страница загрузилась', loaded);
+
+  // 1. Витрина: товары пришли из встроенного каталога, потому что база отсюда недоступна.
+  const catalogShown = await waitFor(
+    `(document.body?.innerText || '').toUpperCase().includes('КАРТХОЛДЕР VEGETABLE')`, 'товары на витрине', 30000);
+  check('витрина показывает товары', catalogShown);
+  if (!catalogShown) throw new Error('витрина не отрисовалась — дальше проверять нечего');
+
+  const shop = await text();
+  check('цена ремня на витрине', contains(shop, '3200'), 'нет 3200');
+  check('крутилка «СКАНИРОВАНИЕ ИНВЕНТАРЯ» не залипла', !contains(shop, 'СКАНИРОВАНИЕ ИНВЕНТАРЯ'));
+
+  // 2. Корзина: кладём товар и смотрим счётчик в шапке.
+  check('кнопка «В КОРЗИНУ» нажата', (await click('В КОРЗИНУ')) === 'нажата');
+  const badgeShown = await waitFor(
+    `!!document.querySelector('header')?.querySelector('span.absolute')?.textContent?.trim()`, 'счётчик корзины', 8000);
+  check('счётчик корзины показывает 1 товар', badgeShown);
+
+  // 3. Экран корзины.
+  const opened = await evaluate(`(() => {
+    const button = [...document.querySelectorAll('button')].find((b) => b.className.includes('relative group p-1'));
+    if (!button) return false;
+    button.click();
+    return true;
+  })()`);
+  check('кнопка корзины в шапке найдена', opened === true);
+  const cartShown = await waitFor(`(document.body?.innerText || '').toUpperCase().includes('КОРЗИНА')`, 'экран корзины', 8000);
+  check('экран корзины открылся', cartShown);
+  const cart = await text();
+  check('товар в корзине', contains(cart, 'КАРТХОЛДЕР VEGETABLE'), cart.slice(0, 120));
+  check('итог посчитан', contains(cart, 'ИТОГО'), 'нет строки «Итого»');
+
+  // 4. Оформление заказа.
+  check('кнопка «Оформить заказ» нажата', (await click('Оформить заказ')) === 'нажата');
+  const checkoutShown = await waitFor(`(document.body?.innerText || '').toUpperCase().includes('ОФОРМЛЕНИЕ ЗАКАЗА')`, 'экран оформления', 8000);
+  check('экран оформления открылся', checkoutShown);
+  const checkout = await text();
+  const addressPlaceholder = await evaluate(`document.querySelector('input[name=address]')?.placeholder || ''`);
+  check('спрашивают адрес ПВЗ', contains(addressPlaceholder, 'АДРЕС ПВЗ'), addressPlaceholder);
+  const fieldNames = await evaluate(
+    `[...document.querySelectorAll('form input')].map((i) => i.name).join(',')`);
+  check('в форме только адрес ПВЗ, без телефона и почты',
+    fieldNames === 'address', fieldNames);
+  check('предупреждение о реквизитах на месте', contains(checkout, 'ОПЛАТА ПЕРЕВОДОМ'));
+  check('на оформлении видно, что именно заказывают',
+    contains(checkout, 'КАРТХОЛДЕР VEGETABLE'), 'состав заказа не показан');
+
+  // 5. Отправка при недоступном сервере: понятная причина и целая корзина.
+  await evaluate(`(() => {
+    const input = document.querySelector('input[name=address]');
+    input.value = 'СДЭК, Санкт-Петербург, тестовый адрес';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    const button = [...document.querySelectorAll('button')].find((b) => b.textContent.includes('ПОДТВЕРДИТЬ'));
+    button.click();
+    return true;
+  })()`);
+  const errorShown = await waitFor(
+    `!!document.querySelector('[role=alert]')`, 'сообщение об ошибке', 45000);
+  check('покупатель видит сообщение об ошибке', errorShown);
+  const alertText = await evaluate(`document.querySelector('[role=alert]')?.innerText || ''`);
+  check('сообщение написано по-русски и без кодов',
+    alertText.length > 10 && !/REJECTED|FUNCTION_|COMM_LINK|undefined/.test(alertText), alertText);
+  const afterFailure = await text();
+  check('покупатель остался на оформлении, а не выброшен на витрину',
+    contains(afterFailure, 'ОФОРМЛЕНИЕ ЗАКАЗА'));
+
+  // Заказ не подтверждён — значит корзина должна остаться на месте.
+  await evaluate(`(() => {
+    const button = [...document.querySelectorAll('button')].find((b) => b.className.includes('relative group p-1'));
+    button?.click();
+    return true;
+  })()`);
+  const cartKept = await waitFor(
+    `(document.body?.innerText || '').toUpperCase().includes('КАРТХОЛДЕР VEGETABLE')`,
+    'товар в корзине после отказа', 8000);
+  check('после отказа корзина не очищена', cartKept, 'товар пропал из корзины');
+
+  console.log(`\nпройдено: ${passed}, провалено: ${failures.length}`);
+  for (const failure of failures) console.log(`  ПРОВАЛ: ${failure}`);
+  ws.close();
+  stop();
+  process.exit(failures.length === 0 ? 0 : 1);
+} catch (error) {
+  console.error(`\nПроверка не дошла до конца: ${error.message}`);
+  stop();
+  process.exit(2);
+}

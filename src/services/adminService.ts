@@ -1,6 +1,7 @@
 
 import { Order, Product, CartItem } from '../types';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/supabase';
+import { orderErrorMessage } from '../lib/orderError';
 import { PRODUCTS } from '../constants';
 
 /**
@@ -72,14 +73,23 @@ export const adminService = {
     }
   },
 
+  /**
+   * Отправляет заказ на сервер. Цена и наличие здесь не передаются: их
+   * считает Edge Function по каталогу, чтобы заказ нельзя было удешевить
+   * правкой запроса. Размер передаётся — по нему мастер шьёт изделие.
+   */
   async createOrder(orderPayload: {
     telegram_id?: number;
     customer_name: string;
     phone: string;
     address: string;
-    items: { product_id: string; quantity: number; price_cents: number }[];
-  }): Promise<{ order_id: string }> {
-    return await invokeFunction('admin-ai', { action: 'create_order', payload: orderPayload });
+    items: { product_id: string; quantity: number; size: string }[];
+  }): Promise<{ order_id: string; total?: number }> {
+    try {
+      return await invokeFunction('admin-ai', { action: 'create_order', payload: orderPayload });
+    } catch (error: any) {
+      throw new Error(orderErrorMessage(error));
+    }
   },
 
   async fetchOrders(telegramId: number): Promise<Order[]> {

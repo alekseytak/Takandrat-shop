@@ -30,7 +30,13 @@ export const Checkout: React.FC = () => {
         customer_name: useStore.getState().currentUser?.first_name || 'Покупатель Telegram',
         phone: '',
         address: String(form.get('address') || ''),
-        items: cart.map(item => ({ product_id: String(item.db_id ?? item.id), quantity: item.quantity, price_cents: Math.round(item.price * 100) }))
+        // Цену не отправляем: её считает сервер по каталогу. Размер отправляем —
+        // по нему шьют изделие.
+        items: cart.map(item => ({
+          product_id: String(item.db_id ?? item.id),
+          quantity: item.quantity,
+          size: item.selectedSize || ''
+        }))
       });
       alert(`Заказ ${result.order_id} принят. Переведите оплату и пришлите подтверждение в Telegram.`);
       clearCart();
@@ -47,6 +53,17 @@ export const Checkout: React.FC = () => {
       <h2 className="text-2xl font-black uppercase mb-6">Оформление заказа</h2>
       <form onSubmit={handleCheckout} className="flex flex-col gap-4">
         <input required name="address" type="text" placeholder="Адрес ПВЗ (Яндекс / Ozon / СДЭК)" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
+        <div className="border-2 border-brand-text">
+          {cart.map(item => (
+            <div
+              key={`${item.id}-${item.selectedSize}`}
+              className="flex justify-between gap-3 px-3 py-2 border-b-2 border-brand-text last:border-b-0 text-xs font-bold uppercase"
+            >
+              <span>{item.name}{item.selectedSize ? ` / ${item.selectedSize}` : ''}</span>
+              <span className="whitespace-nowrap">{item.quantity} × {item.price}₽</span>
+            </div>
+          ))}
+        </div>
         <div className="mt-6 pt-6 border-t-2 border-brand-text flex justify-between items-center"><span className="font-black uppercase">К оплате:</span><span className="text-xl font-black">{total}₽</span></div>
         <div className="mt-8 p-4 border-2 border-brand-text bg-brand-text/5">
           <h3 className="font-black uppercase text-sm mb-4 tracking-widest">ОПЛАТА ПЕРЕВОДОМ</h3>
