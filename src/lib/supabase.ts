@@ -22,7 +22,10 @@ const getEnv = (key: string, fallback: string): string => {
     return fallback;
 }
 
-export const SUPABASE_URL = 'https://xxkafurxhvcclwzabawm.supabase.co';
+// Адрес проекта Supabase. По умолчанию — боевой, но его можно подменить
+// через окружение (VITE_SUPABASE_URL), не правя код: это нужно, чтобы
+// поднять магазин на своём проекте и проверить каталог до публикации.
+export const SUPABASE_URL = getEnv('SUPABASE_URL', 'https://xxkafurxhvcclwzabawm.supabase.co');
 // Предоставленный ключ Anon (Legacy)
 const PROVIDED_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4a2FmdXJ4aHZjY2x3emFiYXdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNTgxMTIsImV4cCI6MjA4NDczNDExMn0.WX3hF0mf6fFpaVIGWFwthmJgoLO4dSkPZH4L_sgOGpc';
 
@@ -32,7 +35,12 @@ export const isSupabaseConfigured = true;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    persistSession: true,
-    autoRefreshToken: true,
+    // Магазин не пользуется Supabase Auth: покупатель опознаётся по Telegram
+    // initData, а таблицы читаются с anon-ключом под RLS. Хранимая сессия и
+    // автообновление токена здесь ничего не дают, зато держат блокировку
+    // gotrue: если инициализация авторизации не отпускает её за 5 секунд,
+    // каталог висит на «СКАНИРОВАНИЕ ИНВЕНТАРЯ…» бесконечно.
+    persistSession: false,
+    autoRefreshToken: false,
   },
 });

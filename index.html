@@ -79,27 +79,10 @@
         }
 
         /* 2. ШРИФТОВОЙ ЛОГОТИП НА ФОНЕ */
-        .font-logo-bg {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90vw;
-            height: 90vh;
-            background-image: url('/image (1).jpeg');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            opacity: 0.12;
-            z-index: -5;
-            pointer-events: none;
-            filter: grayscale(1) contrast(1.1);
-        }
-
-        .dark .font-logo-bg {
-            filter: grayscale(1) invert(1) brightness(0.5);
-            opacity: 0.05;
-        }
+        /* Водяной знак отключён: файл /image (1).jpeg в репозиторий не попадал,
+           поэтому браузер каждый раз просил несуществующую картинку и получал
+           страницу вместо неё. Чтобы вернуть знак — положите файл в public/ и
+           верните правила .font-logo-bg с путём к нему. */
 
         .mono { font-family: 'Space Mono', monospace; }
         
@@ -141,29 +124,10 @@
             background: rgba(0, 0, 0, 0.45);
         }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "zustand": "https://esm.sh/zustand@^5.0.10",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.45.1",
-    "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
-    "url": "https://esm.sh/url@^0.11.4",
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.3",
-    "cors": "https://esm.sh/cors@^2.8.6",
-    "express": "https://esm.sh/express@^5.2.1",
-    "dotenv": "https://esm.sh/dotenv@^17.2.4",
-    "yookassa-sdk": "https://esm.sh/yookassa-sdk@^0.0.13"
-  }
-}
-</script>
+
 </head>
 <body class="antialiased">
     <div class="paper-bg"></div>
-    <div class="font-logo-bg"></div>
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
 </body>
