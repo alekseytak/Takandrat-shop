@@ -1,9 +1,11 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
-import { supabase } from "./src/lib/supabase";
+// Расширение указано намеренно: этот файл запускает обычный node, а он не
+// угадывает расширения, в отличие от tsx и vite. Без ".ts" команда npm start
+// падала с ERR_MODULE_NOT_FOUND.
+import { supabase } from "./src/lib/supabase.ts";
 import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
@@ -607,8 +609,11 @@ ${inventory}
     }
   });
 
-  // Vite middleware for development
+  // Vite middleware for development.
+  // Импорт внутри ветки: в бою серверу нужен только dist, а vite — инструмент
+  // сборки. Со статическим импортом запуск без devDependencies не работал.
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -617,7 +622,9 @@ ${inventory}
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    // Express 5 не принимает голую звёздочку: path-to-regexp v8 требует имя.
+    // Из-за этого сервер падал при старте с PathError «Missing parameter name».
+    app.get('/*splat', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
