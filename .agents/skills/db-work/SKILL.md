@@ -29,7 +29,7 @@ This project uses Supabase from browser code and Supabase Edge Functions. Treat 
 - Use parameters or Supabase query builders for untrusted values. Do not concatenate user input into SQL.
 - Never use `SUPABASE_SERVICE_ROLE_KEY` in browser code, commit it, or expose it in logs. Keep server credentials in the relevant secret store.
 - Do not weaken RLS to make a failing client query pass. Fix the policy or move the operation to an authorized server function.
-- Treat browser-supplied prices, quantities, order totals, roles, and Telegram IDs as untrusted. Validate authoritative values at the server boundary.
+- Treat browser-supplied prices, quantities, order totals, roles, and Telegram IDs as untrusted. Validate authoritative values at the server boundary. Order lines are already rebuilt from the catalog in `supabase/functions/admin-ai/order.ts` (reasons: `EMPTY_ORDER`, `TOO_MANY_LINES`, `BAD_PRODUCT_ID`, `BAD_QUANTITY`, `UNKNOWN_PRODUCT`, `HIDDEN_PRODUCT`, `NOT_ENOUGH_STOCK`, `BAD_PRICE`); run `npm run check:order` after touching that path. Telegram identity is still unverified — `telegram_id` is whatever the caller sent, as recorded in `docs/ORDER_AND_PAYMENT_BOUNDARY.md`.
 - For backups, record scope, time, destination, access controls, retention, and a tested restore method. A backup that has not been restored is unverified.
 
 ## Verify

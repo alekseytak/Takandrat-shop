@@ -20,13 +20,28 @@ Work on the Tak and Rat Telegram Mini App and its browser storefront. Keep the e
 - Display totals from the current cart, but treat all client values as untrusted. The server must validate product IDs, quantities, prices, inventory, and totals against authoritative data before accepting an order. If the current backend does not do this, report and fix that boundary instead of assuming the browser is trustworthy.
 - Preserve the minimum-data principle: collect only information needed to fulfill the order. The documented default is Telegram ID and pickup-point address. Do not add phone, email, or full name without an explicit operational need.
 - Payment card and crypto details must come from the server endpoint `/api/payment-details`. Never put payment secrets in browser code, static assets, prompts, or logs.
+- The server owns prices, stock, and totals. `supabase/functions/admin-ai/order.ts` rebuilds every line from the catalog and rejects unknown, hidden, unpriced, or out-of-stock products. The browser sends only `product_id`, `quantity`, and `size`; a price in the request is ignored. Read `docs/ORDER_AND_PAYMENT_BOUNDARY.md` before touching this path.
+- The product identity the order carries is `db_id ?? id` from the cart. A cart built from the built-in fallback catalog carries SKU strings, which the catalog lookup cannot verify — that order is refused rather than trusted.
 - Make loading, empty, success, validation-error, and retry states explicit. Prevent duplicate submission while a request is in flight. Do not clear the cart before the server confirms order creation.
 - Keep order confirmation honest. Creating an order is not proof that payment cleared, stock was reserved, or a notification was delivered.
 - Preserve accessible labels, keyboard operation, focus visibility, and touch targets when editing controls.
 
 ## Verification
 
-Run `npm run lint` and `npm run build`. Test the relevant path in the UI when a running environment is available. For checkout, verify both a successful order response and a rejected request; do not create a real paid order without authorization. Check that `/api/payment-details` returns JSON and that a missing configuration state does not expose or fabricate credentials.
+Run all four, in this order:
+
+```bash
+npm run lint         # types
+npm run build        # build
+npm run check:order  # order rules: price, quantity, stock (26 checks, no network)
+npm run check:shop   # storefront, cart, checkout in a real browser (20 checks)
+```
+
+`check:shop` needs a running shop (`npm run dev`); it drives headless Chrome over CDP, adds a product to the cart, reaches checkout, and asserts that a failing server produces a readable Russian reason while the cart survives. It does not create a real order.
+
+For checkout, verify both a rejected request and a successful one; do not create a real paid order without authorization. Check that `/api/payment-details` returns JSON and that a missing configuration state does not expose or fabricate credentials.
+
+When you add a new rejection reason on the server, add its Russian text to `src/lib/orderError.ts`: `Record<OrderReject, string>` makes the build fail until you do.
 
 ## Boundaries
 
