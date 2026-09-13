@@ -13,7 +13,12 @@ Telegram Mini App-магазин для ручных изделий и одеж�
 - уведомление владельцу о новом заказе через Supabase Edge Function;
 - админ-доступ по whitelist Telegram ID, без PIN в клиентском коде;
 - магазинный AI-ассистент, который получает каталог из базы и не должен выдумывать цену или наличие;
-- Vercel-ready frontend, статические фотографии и endpoint `GET /api/payment-details`.
+- Vercel-ready frontend, статические фотографии и endpoint `GET /api/payment-details`;
+- витрина работает и без базы: если каталог в Supabase не ответил за 4 секунды,
+  показывается встроенный каталог из `src/constants.ts`, а не бесконечная
+  загрузка;
+- сервер не верит цене из браузера: сумма, наличие и состав заказа считаются
+  по каталогу внутри Edge Function.
 
 ## Быстрый старт
 
@@ -26,9 +31,16 @@ npm run dev
 Проверки перед публикацией:
 
 ```bash
-npm run lint
-npm run build
+npm run lint         # типы
+npm run build        # сборка
+npm run check:order  # правила заказа: цена, количество, наличие (26 проверок)
+npm run check:shop   # витрина, корзина, оформление в браузере (20 проверок)
 ```
+
+`check:shop` требует запущенного `npm run dev`: проверка сама открывает
+headless Chrome, кладёт товар в корзину, доходит до оформления и убеждается,
+что при недоступном сервере покупатель видит понятную причину, а корзина
+остаётся на месте. Реальный заказ не создаётся.
 
 ## Настройка владельцем
 
@@ -48,7 +60,7 @@ npm run build
 | `PAYMENT_CARD_RECIPIENT` | Vercel | Получатель платежа, например имя владельца. |
 | `PAYMENT_CRYPTO_ADDRESS` | Vercel | Адрес криптокошелька. |
 | `PAYMENT_CRYPTO_NETWORK` | Vercel | Сеть кошелька, например `SOL` или `TRC20`. |
-| `SUPABASE_URL` | Vercel, Supabase Functions | URL проекта Supabase. |
+| `SUPABASE_URL` | Vercel, Supabase Functions | URL проекта Supabase. Клиент читает его как `VITE_SUPABASE_URL` (или `SUPABASE_URL`); без переменной используется боевой адрес из `src/lib/supabase.ts`. |
 | `SUPABASE_ANON_KEY` | Vercel | Публичный anon key Supabase. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Только сервер и Supabase Functions | Сервисный ключ. Не передавать клиенту. |
 | `ADMIN_TELEGRAM_IDS` | Сервер и Supabase Functions | Telegram ID администраторов через запятую. |
@@ -85,12 +97,39 @@ curl https://YOUR-DOMAIN/api/payment-details
 ## Структура
 
 - `src/constants.ts` — fallback-каталог и брендовые тексты.
-- `src/components/Checkout.tsx` — минимальный checkout и отображение реквизитов.
+- `src/components/Checkout.tsx` — минимальный checkout: состав заказа и реквизиты.
+- `src/lib/orderError.ts` — перевод причин отказа сервера на русский; список причин взят из `order.ts`, поэтому новая причина не может остаться без объяснения.
+- `supabase/functions/admin-ai/order.ts` — проверки и расчёт заказа по каталогу.
+- `scripts/shop-smoke.mjs` — сквозная проверка витрины и корзины в браузере.
 - `api/payment-details.ts` — Vercel Serverless Function для реквизитов оплаты.
 - `supabase/functions/admin-ai/index.ts` — создание заказов, управление данными, уведомления.
 - `supabase/functions/telegram-bot/index.ts` — Telegram-бот.
 - `server.ts` — локальный Node runtime и AI-маршруты. Для Vercel каждый production API должен быть перенесён в `api/*.ts` или Supabase Edge Functions.
 - `docs/AGENT_STORE_BLUEPRINT.md` — готовый prompt для агента, создающего магазин под любой товар.
+
+## Известные слабые места
+
+Честный список того, что требует решения владельца:
+
+1. **Подпись Telegram не проверяется.** Заказ может создать любой, кто знает
+   адрес функции `admin-ai`, и указать чужой `telegram_id`. Закрывается
+   проверкой `initData` (HMAC с токеном бота), но тогда заказ перестанет
+   оформляться из обычного браузера.
+2. **Дубль заказа при потере ответа.** Кнопка блокируется на время запроса,
+   но повторная отправка после сетевой ошибки создаст второй заказ.
+3. **Оформление зависит от CDN Tailwind.** Стили приходят скриптом
+   `cdn.tailwindcss.com`; сам Tailwind предупреждает, что так делать не
+   следует в production. Переход на PostCSS подготовлен в ветке
+   `audit-vercel-supabase-shop`, но в `main` не влит.
+4. **`public/avatar.jpg` — не картинка.** Файл начинается с байтов `ef bf bd`
+   (испорченный текст), нигде не используется и весит 560 КБ. Его нужно либо
+   заменить настоящим изображением, либо удалить.
+5. **Водяной знак с логотипом отключён.** Правило `.font-logo-bg` ссылалось на
+   `/image (1).jpeg`, которого в репозитории никогда не было. Чтобы вернуть
+   знак, положите файл в `public/` и верните правило с путём к нему.
+
+Подробности про деньги, цены и состав заказа — в
+`docs/ORDER_AND_PAYMENT_BOUNDARY.md`.
 
 ## Ограничения текущей production-версии
 
