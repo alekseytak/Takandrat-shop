@@ -1,6 +1,6 @@
 ---
 name: context7
- description: Look up current library and framework documentation through Context7 before implementing APIs. Use when documentation, model SDKs, MCP servers, or fast-changing packages are involved.
+description: Look up current library and framework documentation through Context7 before implementing APIs. Use when documentation, model SDKs, MCP servers, or fast-changing packages are involved.
 metadata:
   shelllm:
     requires:
