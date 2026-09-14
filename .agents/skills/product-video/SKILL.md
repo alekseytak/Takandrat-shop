@@ -13,6 +13,11 @@ Before generating a clip, identify the product, approved source photos, target p
 
 ## Preserve product truth
 
+- The gateway connected to this shop has no working video generation: models are
+  listed, `POST /v1/videos/generations` answers 503 "Video generation is not
+  configured", and there is no voice model at all. This was measured on
+  14 September and recorded in `docs/CONTENT_FACTORY.md`. Video needs a separate
+  service before any of it can be planned for real.
 - Use `grok-imagine-video-1.5` only after checking current model availability, API access, pricing, content limits, and output specs. This repository does not currently document a video-generation integration.
 - Use a real product image as visual reference where the service supports it. Reject output that changes the shape, color, stitching, hardware, texture, or count of items.
 - Keep camera movement restrained and product-led. Avoid adding hands, props, packaging, or scenes that imply an unverified use or included accessory.

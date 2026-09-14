@@ -9,6 +9,12 @@ metadata:
 
 # content-factory
 
+Measured facts about the connected model gateway (what it can and cannot do, and
+why drafts get rejected) live in `docs/CONTENT_FACTORY.md`; the tool itself is
+`tools/factory.ts` (`npx tsx tools/factory.ts`). Read that before writing a new
+pipeline: video and voice are not available there, and image models do not hold
+the product unchanged.
+
 Use approved product records and source photos only. Never invent material, construction, dimensions, availability, price, delivery, or product claims.
 
 ## Pipeline
