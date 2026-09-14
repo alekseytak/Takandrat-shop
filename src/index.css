@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Дальше — то, что раньше лежало в <style> внутри index.html. */
+
+:root {
+    --color-bg: #ffffff;
+    --color-text: #000000;
+    --color-accent: #000000;
+    --color-border: #000000;
+    --border-width: 2px;
+    /* Те же цвета тройками каналов: только так Tailwind умеет накладывать
+       прозрачность (bg-brand-bg/95). С одним var() он молча не создаёт класс,
+       и шапка оставалась без фона. */
+    --color-bg-rgb: 255 255 255;
+    --color-text-rgb: 0 0 0;
+    --color-border-rgb: 0 0 0;
+}
+
+.dark {
+    --color-bg: #000000;
+    --color-text: #ffffff;
+    --color-accent: #ffffff;
+    --color-border: #ffffff;
+    --color-bg-rgb: 0 0 0;
+    --color-text-rgb: 255 255 255;
+    --color-border-rgb: 255 255 255;
+}
+
+body {
+    font-family: 'Space Grotesk', sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    min-height: 100vh;
+    overflow-x: hidden;
+    margin: 0;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Текстура бумаги отключена: файла public/image.jpeg в репозитории нет,
+   поэтому браузер каждый раз просил несуществующую картинку. Чтобы вернуть
+   текстуру — положите файл в public/ и включите правила ниже.
+
+.paper-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/image.jpeg');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.85;
+    z-index: -10;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    transition: opacity 0.3s ease;
+}
+
+.dark .paper-bg {
+    opacity: 0.15;
+    mix-blend-mode: overlay;
+    filter: invert(1);
+}
+*/
+
+.mono { font-family: 'Space Mono', monospace; }
+
+.brutalist-border {
+    border: var(--border-width) solid var(--color-border);
+}
+
+.brutalist-shadow {
+    box-shadow: 4px 4px 0px 0px var(--color-border);
+}
+
+.brutalist-shadow-sm {
+    box-shadow: 2px 2px 0px 0px var(--color-border);
+}
+
+@keyframes rotation {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.logo-spin {
+    animation: rotation 15s infinite linear;
+}
+
+::-webkit-scrollbar { display: none; }
+
+/* Секции прозрачные, чтобы сквозь них была видна текстура. Шапка — исключение:
+   у неё свой фон (bg-brand-bg/95), и раньше это правило его перебивало, из-за
+   чего липкая шапка была прозрачной и текст при прокрутке ехал под ней. */
+section, footer, main, #root {
+    background-color: transparent !important;
+}
+
+.product-card-glass {
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(4px);
+    border: var(--border-width) solid var(--color-border);
+    transition: background 0.3s ease;
+}
+
+.dark .product-card-glass {
+    background: rgba(0, 0, 0, 0.45);
+}

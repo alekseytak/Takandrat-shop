@@ -208,6 +208,82 @@ try {
     'товар в корзине после отказа', 8000);
   check('после отказа корзина не очищена', cartKept, 'товар пропал из корзины');
 
+  // Стили. Раньше Tailwind приезжал скриптом с CDN и собирал классы из живой
+  // страницы, поэтому любой класс, собранный в рантайме, работал. Сборка так
+  // не умеет: она видит только текст в файлах. Поэтому проверяем не сборку, а
+  // страницу — у каждого класса, который есть в разметке, должно быть правило.
+  const styles = await evaluate(`(() => {
+    const classes = new Set();
+    for (const element of document.querySelectorAll('*')) for (const name of element.classList) classes.add(name);
+    const selectors = [];
+    const collect = (rules) => {
+      for (const rule of rules) {
+        if (rule.selectorText) selectors.push(rule.selectorText);
+        // Классы вида sm:gap-3 живут внутри @media, поэтому внутрь надо заглядывать.
+        if (rule.cssRules) collect(rule.cssRules);
+      }
+    };
+    for (const sheet of document.styleSheets) {
+      try { collect(sheet.cssRules); } catch { /* чужая таблица */ }
+    }
+    const joined = selectors.join(' ');
+    const missing = [...classes].filter((name) => !joined.includes('.' + CSS.escape(name)));
+    const body = getComputedStyle(document.body);
+    return {
+      total: classes.size,
+      missing: missing.slice(0, 8),
+      missingCount: missing.length,
+      cdn: !!document.querySelector('script[src*="tailwindcss"]'),
+      background: body.backgroundColor,
+      font: body.fontFamily,
+      rules: selectors.length,
+    };
+  })()`);
+
+  check('Tailwind больше не грузится с чужого CDN', styles.cdn === false,
+    styles.cdn ? 'на странице остался скрипт cdn.tailwindcss.com' : '');
+  check('у каждого класса на странице есть правило',
+    styles.missingCount === 0,
+    styles.missingCount > 0 ? `без правил: ${styles.missing.join(', ')}` : '');
+  check('основные стили применились',
+    styles.background === 'rgb(255, 255, 255)' && String(styles.font).includes('Space Grotesk'),
+    `фон ${styles.background}, шрифт ${styles.font}`);
+  check('правил CSS больше сотни, то есть стили собраны, а не потеряны',
+    styles.rules > 100, `правил: ${styles.rules}`);
+
+  // Тёмная тема держится на переменных CSS и на darkMode: 'class'. При переезде
+  // стилей в сборку это могло отвалиться незаметно: страница просто осталась бы
+  // светлой. Переключаем класс и смотрим вычисленные цвета.
+  const readColors = () => evaluate(`(() => {
+    const style = getComputedStyle(document.body);
+    return { bg: style.backgroundColor, text: style.color };
+  })()`);
+  const toggleDark = (on) => evaluate(`document.documentElement.classList.${on ? 'add' : 'remove'}('dark'), true`);
+  // У body переход цвета на 0,3 с: сразу после переключения вычисленный цвет
+  // ещё старый, поэтому ждём, пока переход закончится.
+  const light = await readColors();
+  await toggleDark(true);
+  await sleep(500);
+  const dark = await readColors();
+  await toggleDark(false);
+  await sleep(500);
+  const back = await readColors();
+  check('тёмная тема переключает фон и текст',
+    light.bg === 'rgb(255, 255, 255)' && dark.bg === 'rgb(0, 0, 0)'
+      && dark.text === 'rgb(255, 255, 255)' && back.bg === light.bg,
+    `светлая ${light.bg}/${light.text}, тёмная ${dark.bg}/${dark.text}, обратно ${back.bg}`);
+
+  // Шапка липкая, значит под ней едет содержимое: без фона текст наложится
+  // сам на себя. Проверяем не класс, а вычисленный фон.
+  const headerBackground = await evaluate(`(() => {
+    const header = document.querySelector('header');
+    if (!header) return 'шапки нет';
+    return getComputedStyle(header).backgroundColor;
+  })()`);
+  check('у липкой шапки есть фон, а не прозрачность',
+    typeof headerBackground === 'string' && headerBackground.startsWith('rgba(') && !headerBackground.endsWith(', 0)'),
+    `фон шапки: ${headerBackground}`);
+
   console.log(`\nпройдено: ${passed}, провалено: ${failures.length}`);
   for (const failure of failures) console.log(`  ПРОВАЛ: ${failure}`);
   ws.close();

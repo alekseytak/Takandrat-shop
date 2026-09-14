@@ -6,128 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Так энд рэт — одежда и аксессуары для эпохи неопределенности. Философия самообеспечения, ручная работа, натуральная кожа и хлопок. Функциональный минимализм.">
     <title>Так энд рэт | Экипировка для автономности</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Стили собирает PostCSS (src/index.css, tailwind.config.js). Скрипт с
+         cdn.tailwindcss.com убран: он тянул целый фреймворк в рантайме и
+         собирал классы из живой страницы, из-за чего витрина зависела от
+         чужого сервера. -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            bg: 'var(--color-bg)',
-                            text: 'var(--color-text)',
-                            border: 'var(--color-border)',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        :root {
-            --color-bg: #ffffff;
-            --color-text: #000000;
-            --color-accent: #000000;
-            --color-border: #000000;
-            --border-width: 2px;
-        }
-
-        .dark {
-            --color-bg: #000000;
-            --color-text: #ffffff;
-            --color-accent: #ffffff;
-            --color-border: #ffffff;
-        }
-
-        body {
-            font-family: 'Space Grotesk', sans-serif;
-            background-color: var(--color-bg);
-            color: var(--color-text);
-            -webkit-tap-highlight-color: transparent;
-            position: relative;
-            min-height: 100vh;
-            overflow-x: hidden;
-            margin: 0;
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        /* 1. ТЕКСТУРА БУМАГИ */
-        .paper-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url('/image.jpeg');
-            background-size: cover;
-            background-position: center;
-            opacity: 0.85;
-            z-index: -10;
-            pointer-events: none;
-            mix-blend-mode: multiply;
-            transition: opacity 0.3s ease;
-        }
-
-        .dark .paper-bg {
-            opacity: 0.15;
-            mix-blend-mode: overlay;
-            filter: invert(1);
-        }
-
-        /* 2. ШРИФТОВОЙ ЛОГОТИП НА ФОНЕ */
-        /* Водяной знак отключён: файл /image (1).jpeg в репозиторий не попадал,
-           поэтому браузер каждый раз просил несуществующую картинку и получал
-           страницу вместо неё. Чтобы вернуть знак — положите файл в public/ и
-           верните правила .font-logo-bg с путём к нему. */
-
-        .mono { font-family: 'Space Mono', monospace; }
-        
-        .brutalist-border {
-            border: var(--border-width) solid var(--color-border);
-        }
-
-        .brutalist-shadow {
-            box-shadow: 4px 4px 0px 0px var(--color-border);
-        }
-
-        .brutalist-shadow-sm {
-            box-shadow: 2px 2px 0px 0px var(--color-border);
-        }
-
-        @keyframes rotation {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .logo-spin {
-            animation: rotation 15s infinite linear;
-        }
-
-        ::-webkit-scrollbar { display: none; }
-
-        header, section, footer, main, #root {
-            background-color: transparent !important;
-        }
-
-        .product-card-glass {
-            background: rgba(255, 255, 255, 0.45);
-            backdrop-filter: blur(4px);
-            border: var(--border-width) solid var(--color-border);
-            transition: background 0.3s ease;
-        }
-
-        .dark .product-card-glass {
-            background: rgba(0, 0, 0, 0.45);
-        }
-    </style>
 
 </head>
 <body class="antialiased">
-    <div class="paper-bg"></div>
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
 </body>
