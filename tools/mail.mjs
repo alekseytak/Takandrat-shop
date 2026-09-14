@@ -37,15 +37,31 @@ const save = (file, data) => {
   chmodSync(file, 0o600);
 };
 
+/**
+ * Годится ли сохранённый токен для заголовка запроса.
+ *
+ * Проверка появилась после живой поломки: если в файле с настройками токен
+ * окажется испорчен (мусор, обрывок, случайный непечатный знак), fetch падал
+ * с «Cannot convert argument to a ByteString» — непонятно чем и почему, вместо
+ * того чтобы просто войти заново. Токен неизвестного вида считаем отсутствием
+ * токена.
+ */
+const tokenLooksUsable = (value) => typeof value === 'string' && value.length >= 20 && value.length <= 4096 && /^[\x21-\x7E]+$/.test(value);
+
 const call = async (path, { method = 'GET', body, token } = {}) => {
-  const response = await fetch(`${API}${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
+  let response;
+  try {
+    response = await fetch(`${API}${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+  } catch (error) {
+    throw new Error(`не удалось обратиться к ${API}: ${error?.cause?.code || error.message}`);
+  }
   const text = await response.text();
   const data = text ? JSON.parse(text) : null;
   if (!response.ok) {
@@ -55,17 +71,21 @@ const call = async (path, { method = 'GET', body, token } = {}) => {
   return data;
 };
 
-/** Токен живёт час; при 401 молча берём новый по сохранённому паролю. */
+/** Токен живёт час; при 401 или испорченном токене молча берём новый по паролю. */
 const withToken = async (account, run) => {
-  try {
-    return await run(account.token);
-  } catch (error) {
-    if (!/401/.test(error.message)) throw error;
-    const fresh = await call('/token', { method: 'POST', body: { address: account.address, password: account.password } });
-    const updated = { ...account, token: fresh.token, tokenId: fresh.id, tokenAt: new Date().toISOString() };
-    save(CONFIG, updated);
-    return run(updated.token);
+  const stored = tokenLooksUsable(account.token) ? account.token : null;
+  if (stored !== null) {
+    try {
+      return await run(stored);
+    } catch (error) {
+      if (!/401/.test(error.message)) throw error;
+    }
   }
+  const fresh = await call('/token', { method: 'POST', body: { address: account.address, password: account.password } });
+  if (!fresh?.token) throw new Error('сервис не выдал токен — проверьте адрес и пароль в файле настроек');
+  const updated = { ...account, token: fresh.token, tokenId: fresh.id, tokenAt: new Date().toISOString() };
+  save(CONFIG, updated);
+  return run(updated.token);
 };
 
 const activeDomains = async () => {
