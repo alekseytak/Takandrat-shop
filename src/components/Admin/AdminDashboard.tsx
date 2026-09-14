@@ -6,7 +6,6 @@ import { Order, Product } from '@/types';
 import { AdminAIAssistant } from './AdminAIAssistant';
 import { SYSTEM_LOG } from '@/constants/SystemLog';
 
-const ADMIN_SECRET = "zN8u4Yq2Vtq9KpH3s7QbF0xR6yLwM1uGv5aZcT9pH2yVq4nB"; 
 
 export const AdminDashboard: React.FC = () => {
   const { currentUser, setView, lastAiMetrics } = useStore();
@@ -68,9 +67,11 @@ export const AdminDashboard: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const ordersData = await adminService.fetchOrders(currentUser!.telegram_id);
+      // Право на эти данные проверяет сервер по подписи Telegram, поэтому
+      // здесь нечего передавать: ни id, ни секрета.
+      const ordersData = await adminService.fetchOrders();
       setOrders(ordersData);
-      const stockRes = await adminService.fetchAdminStock(ADMIN_SECRET);
+      const stockRes = await adminService.fetchAdminStock();
       setAdminStock(stockRes.stock || []);
     } catch (err) { console.error(err); } 
     finally { setLoading(false); }

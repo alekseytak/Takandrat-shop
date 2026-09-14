@@ -14,7 +14,9 @@
     "factory": "tsx tools/factory.ts",
     "mail": "node tools/mail.mjs",
     "check:telegram": "node supabase/functions/admin-ai/telegram.test.ts",
-    "check:idempotency": "node supabase/functions/admin-ai/idempotency.test.ts"
+    "check:idempotency": "node supabase/functions/admin-ai/idempotency.test.ts",
+    "check:rls": "node scripts/check-rls.mjs",
+    "check:admin": "node supabase/functions/admin-ai/admin.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.9.0",

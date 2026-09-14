@@ -39,6 +39,8 @@ npm run build        # сборка
 npm run check:order     # правила заказа: цена, количество, наличие (26 проверок)
 npm run check:telegram  # подпись Telegram: подделка, чужой токен, просрочка (16 проверок)
 npm run check:idempotency  # повтор заказа не создаёт второй (16 проверок)
+npm run check:admin     # права владельца: заказы, склад, скрытые товары (30 проверок)
+npm run check:rls       # граница доступа к базе публичным ключом
 npm run check:shop   # витрина, корзина, оформление, стили в браузере (26 проверок)
 ```
 
@@ -121,6 +123,10 @@ curl https://YOUR-DOMAIN/api/payment-details
 - `supabase/functions/admin-ai/telegram.ts` — проверка подписи Telegram: по ней
   видно, кто заказывает.
 - `supabase/functions/admin-ai/idempotency.ts` — повтор заказа не создаёт второй.
+- `supabase/functions/admin-ai/admin.ts` — кто владелец: заказы покупателей,
+  склад и скрытые товары доступны только ему.
+- `supabase/migrations/` — схема базы и правила доступа. Порядок восстановления
+  и проверка границы — [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md).
 - `src/components/Checkout.tsx` — минимальный checkout: состав заказа и реквизиты.
 - `src/lib/orderError.ts` — перевод причин отказа сервера на русский; список причин взят из `order.ts`, поэтому новая причина не может остаться без объяснения.
 - `supabase/functions/admin-ai/order.ts` — проверки и расчёт заказа по каталогу.
@@ -159,6 +165,11 @@ curl https://YOUR-DOMAIN/api/payment-details
 
 Честный список того, что требует решения владельца:
 
+0. **Проекта Supabase, на который ссылается магазин, больше нет.** Имя хоста
+   `xxkafurxhvcwlzabawm.supabase.co` не разрешается. Пока проект не создан
+   заново, витрина берёт каталог из `src/constants.ts`, а заказы не создаются.
+   Схема сохранена в репозитории, порядок восстановления —
+   [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md).
 1. **Приём заказов требует секрета в самой функции.** Подпись Telegram
    проверяется (`telegram.ts`, 16 проверок), и покупатель берётся из подписи, а
    не из тела запроса. Но если у функции `admin-ai` не задан

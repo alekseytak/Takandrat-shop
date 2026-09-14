@@ -63,6 +63,12 @@ async function invokeFunction(functionName: string, payload: any = {}, signal?: 
   }
 }
 
+/** Подпись мини-приложения: по ней сервер видит, кто именно просит. */
+const telegramInitData = (): string => {
+  const value = (window as any)?.Telegram?.WebApp?.initData;
+  return typeof value === 'string' ? value : '';
+};
+
 export const adminService = {
   async checkTrinityStatus(): Promise<boolean> {
     try {
@@ -89,36 +95,54 @@ export const adminService = {
     try {
       // Подпись Telegram едет вместе с заказом: сервер иначе не знает, кто
       // заказывает, и верит полю telegram_id на слово. См. telegram.ts.
-      const initData = (window as any)?.Telegram?.WebApp?.initData;
       return await invokeFunction('admin-ai', {
         action: 'create_order',
-        payload: { ...orderPayload, init_data: typeof initData === 'string' ? initData : '' },
+        payload: { ...orderPayload, init_data: telegramInitData() },
       });
     } catch (error: any) {
       throw new Error(orderErrorMessage(error));
     }
   },
 
-  async fetchOrders(telegramId: number): Promise<Order[]> {
+  /**
+   * Кто я: владелец или покупатель. Решает сервер по подписи Telegram и списку
+   * id владельцев — клиент к таблице users за этим больше не ходит.
+   */
+  async whoAmI(): Promise<{ is_admin: boolean; reason?: string }> {
     try {
-      return await invokeFunction('admin-ai', { action: 'fetch_orders', payload: { telegram_id: telegramId } });
+      return await invokeFunction('admin-ai', { action: 'whoami', payload: { init_data: telegramInitData() } });
+    } catch (error) {
+      console.warn("[WHOAMI_FALLBACK]", error);
+      return { is_admin: false };
+    }
+  },
+
+  // Заказы всех покупателей и склад — только владельцу. Кто владелец, решает
+  // сервер по подписи и списку id: здесь об этом не спрашивают.
+  async fetchOrders(): Promise<Order[]> {
+    try {
+      return await invokeFunction('admin-ai', { action: 'fetch_orders', payload: { init_data: telegramInitData() } });
     } catch (error) {
       console.warn("[ORDERS_FALLBACK]", error);
       return [];
     }
   },
 
-  async fetchAdminStock(secret: string): Promise<any> {
+  async fetchAdminStock(): Promise<any> {
     try {
-      return await invokeFunction('admin-ai', { action: 'fetch_stock', payload: { secret } });
+      return await invokeFunction('admin-ai', { action: 'fetch_stock', payload: { init_data: telegramInitData() } });
     } catch (error) {
+      console.warn("[STOCK_FALLBACK]", error);
       return { stock: [] };
     }
   },
 
   async searchProducts(query: string = '', isAdmin: boolean = false, signal?: AbortSignal): Promise<Product[]> {
     try {
-      const data = await invokeFunction('admin-ai', { action: 'search', payload: { query, include_hidden: isAdmin } }, signal);
+      const data = await invokeFunction('admin-ai', {
+        action: 'search',
+        payload: { query, include_hidden: isAdmin, init_data: telegramInitData() },
+      }, signal);
       if (!data?.products) throw new Error("EMPTY");
       return data.products.map((item: any) => ({
         id: item.id.toString(),

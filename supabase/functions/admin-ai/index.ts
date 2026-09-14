@@ -4,6 +4,7 @@ import { GoogleGenAI, Type } from "https://esm.sh/@google/genai@1.40.0";
 import { buildOrder } from "./order.ts";
 import { verifyInitData } from "./telegram.ts";
 import { decideByKey, idempotencyKey } from "./idempotency.ts";
+import { adminIdsFromEnv, authorizeAdmin, isPrivilegedAction } from "./admin.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,6 +24,26 @@ Deno.serve(async (req: Request) => {
     const { action, payload } = await req.json();
 
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    // Привилегированные действия: все заказы покупателей, склад, скрытые
+    // товары. Раньше они не проверяли никого — заказы с именами, адресами и
+    // составом отдавались любому, кто знает адрес функции. Личность берётся из
+    // подписи Telegram, право — из списка владельцев.
+    if (isPrivilegedAction(action, payload)) {
+      const adminToken = Deno.env.get('TELEGRAM_BOT_TOKEN') || '';
+      if (adminToken.length === 0) {
+        return new Response(JSON.stringify({ error: 'FORBIDDEN', reason: 'ADMIN_UNVERIFIABLE' }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const adminSignature = await verifyInitData(payload?.init_data, adminToken);
+      if (!adminSignature.ok) {
+        return new Response(JSON.stringify({ error: 'FORBIDDEN', reason: adminSignature.reason }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const owners = adminIdsFromEnv(Deno.env.get('ADMIN_TELEGRAM_IDS'), Deno.env.get('TELEGRAM_ADMIN_CHAT_ID'));
+      const allowed = authorizeAdmin(adminSignature.user.id, owners);
+      if (!allowed.ok) {
+        return new Response(JSON.stringify({ error: 'FORBIDDEN', reason: allowed.reason }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    }
 
     if (action === 'create_order') {
       const { telegram_id, customer_name, phone, address, items, init_data, idempotency_key } = payload || {};
@@ -125,7 +146,8 @@ Deno.serve(async (req: Request) => {
     if (action === 'search' || action === 'fetch_stock') {
       const query = String(payload?.query || '').trim();
       let request = supabaseClient.from('products').select('*').order('id', { ascending: true });
-      if (action === 'search' && !payload?.include_hidden) request = request.eq('is_visible', true);
+      // Строго === true: иначе «true» строкой обходил бы фильтр скрытых товаров.
+      if (action === 'search' && payload?.include_hidden !== true) request = request.eq('is_visible', true);
       if (query) request = request.ilike('name', `%${query}%`);
       const { data, error } = await request;
       if (error) throw error;
@@ -150,7 +172,13 @@ Deno.serve(async (req: Request) => {
         `[PRODUCT:${p.id}] ${p.name} (${p.price} руб.): ${p.description}`
       ).join('\n') || "Inventory offline.";
 
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Deno не знает process.env: в функции окружение читается через Deno.env.
+      // С process.env эта ветка падала на ReferenceError, и чат не отвечал.
+      const aiKey = Deno.env.get('API_KEY') || '';
+      if (aiKey.length === 0) {
+        return new Response(JSON.stringify({ error: 'CHAT_UNAVAILABLE', reason: 'API_KEY_MISSING' }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const ai = new GoogleGenAI({ apiKey: aiKey });
       
       const systemInstruction = `
       ПРОТОКОЛ ИНТЕРФЕЙСА: КВАНТОВО-ЭТИЧЕСКИЙ ГРАДИЕНТ ГАРМОНИИ (∇ε_Total)
@@ -213,6 +241,26 @@ Deno.serve(async (req: Request) => {
     }
 
     // Ping / Fetch logic...
+    // Кто я. Клиент больше не читает таблицу users, чтобы узнать, админ ли он:
+    // с публичным ключом это позволяло вычитать чужие записи. Ответ даёт
+    // сервер, и только «владелец или нет», без чужих данных.
+    if (action === 'whoami') {
+      const whoToken = Deno.env.get('TELEGRAM_BOT_TOKEN') || '';
+      if (whoToken.length === 0) {
+        return new Response(JSON.stringify({ is_admin: false, reason: 'ADMIN_UNVERIFIABLE' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const whoSignature = await verifyInitData(payload?.init_data, whoToken);
+      if (!whoSignature.ok) {
+        return new Response(JSON.stringify({ is_admin: false, reason: whoSignature.reason }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const owners = adminIdsFromEnv(Deno.env.get('ADMIN_TELEGRAM_IDS'), Deno.env.get('TELEGRAM_ADMIN_CHAT_ID'));
+      const allowed = authorizeAdmin(whoSignature.user.id, owners);
+      return new Response(JSON.stringify({
+        is_admin: allowed.ok,
+        user: { id: whoSignature.user.id, first_name: whoSignature.user.first_name ?? null },
+      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     if (action === 'ping') return new Response(JSON.stringify({ status: 'online' }), { headers: corsHeaders });
     
     return new Response(JSON.stringify({ error: 'UNKNOWN_ACTION' }), { status: 400, headers: corsHeaders });

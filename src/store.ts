@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { CartItem, Product, UserProfile, AiMetrics } from './types';
-import { supabase } from './lib/supabase';
+import { adminService } from './services/adminService';
 
 interface GlobalStore {
   view: 'shop' | 'corporate' | 'cart' | 'checkout' | 'chat' | 'admin' | 'info';
@@ -63,14 +63,12 @@ export const useStore = create<GlobalStore>((set, get) => ({
     };
     set({ currentUser: profile });
     try {
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('*')
-        .eq('telegram_id', tgUser.id)
-        .single();
-      if (existingUser) {
-        set({ currentUser: { ...profile, ...existingUser } });
-      }
+      // Раньше здесь читалась таблица users с публичным ключом — и вместе с
+      // нужным флагом админа можно было вычитать чужие записи. Теперь про это
+      // спрашивают сервер: он проверяет подпись Telegram и отвечает только
+      // «владелец или нет».
+      const me = await adminService.whoAmI();
+      if (me?.is_admin) set({ currentUser: { ...profile, is_admin: true } });
     } catch (err) { console.warn(err); }
   },
 
