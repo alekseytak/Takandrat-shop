@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "check:order": "node supabase/functions/admin-ai/order.test.ts",
+    "check:catalog": "tsx tools/catalog-registry.test.ts",
     "check:shop": "node scripts/shop-smoke.mjs",
     "factory": "tsx tools/factory.ts",
     "mail": "node tools/mail.mjs",

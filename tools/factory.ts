@@ -24,6 +24,13 @@
  * Ключ берётся из ONEPROVIDER_API_KEY, а если её нет — из хранилища харнесса.
  * Ключ нигде не печатается.
  */
+import { mkdirSync } from 'node:fs';
+import {
+  emptyRegistry,
+  parseRegistry,
+  publishVersion,
+  serializeRegistry,
+} from './catalog-registry';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -37,6 +44,8 @@ const VISION_MODEL = process.env.FACTORY_VISION_MODEL || 'deepseek-v4-flash-visi
 const TEXT_MODEL = process.env.FACTORY_TEXT_MODEL || 'gemini-3.1-flash-lite';
 const DRAFTS = resolve('content/drafts');
 const CATALOG_DIR = resolve('public/products');
+const REGISTRY_DIR = resolve('content');
+const REGISTRY_FILE = resolve('content/catalog.json');
 const TMP = '/tmp/factory';
 
 /** Изделие не меняется: разрешён только фон, свет и пылинки. */
@@ -427,6 +436,30 @@ const review = async (args: string[]): Promise<void> => {
   if (decision.status === 'rejected') process.exitCode = 1;
 };
 
+/**
+ * Публикация записывает версию каталога: снимок того, что видит покупатель.
+ * Версии не перезаписываются, поэтому откат (tools/catalog.ts rollback) может
+ * вернуть прежний каталог, ничего не потеряв.
+ */
+const recordVersion = (note: string): void => {
+  const registry = existsSync(REGISTRY_FILE)
+    ? parseRegistry(readFileSync(REGISTRY_FILE, 'utf8'))
+    : emptyRegistry();
+  const updated = publishVersion(registry, {
+    products: Object.fromEntries(
+      PRODUCTS.map((product) => [
+        product.id,
+        (product.images ?? []).map((image) => image.replace('/products/', '')),
+      ]),
+    ),
+    note,
+    at: new Date().toISOString(),
+  });
+  mkdirSync(REGISTRY_DIR, { recursive: true });
+  writeFileSync(REGISTRY_FILE, serializeRegistry(updated));
+  console.log(`версия каталога: ${updated.current} — откат: npx tsx tools/catalog.ts rollback ${updated.current}`);
+};
+
 /** В каталог — только прошедшее проверку и только по явному слову владельца. */
 const publish = async (args: string[]): Promise<void> => {
   const dir = args.find((arg) => !arg.startsWith('--'));
@@ -445,6 +478,7 @@ const publish = async (args: string[]): Promise<void> => {
   copyFileSync(join(dir, 'draft.jpg'), target);
   console.log(`в каталоге: public/products/${next}.jpg (${imageSize(target)})`);
   console.log('готовое фото не перезаписывает ни одно прежнее — новый номер, новый файл');
+  recordVersion(`публикация черновика ${dir}`);
 };
 
 const list = (): void => {

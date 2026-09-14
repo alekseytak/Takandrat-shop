@@ -1,0 +1,82 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6] [cursor=pointer]: ТАК И РАТ
+      - navigation [ref=e56]:
+        - button [ref=e57] [cursor=pointer]
+        - button "B2B / МЕРЧ" [ref=e60] [cursor=pointer]
+        - button [ref=e61] [cursor=pointer]:
+          - img "AI Chat" [ref=e62]
+        - button [ref=e63] [cursor=pointer]
+  - main [ref=e67]:
+    - generic [ref=e69]:
+      - generic [ref=e70]: РОССИЙСКОЕ ПРЕМИАЛЬНОЕ РЕМЕСЛО
+      - heading "ТАК И РАТ" [level=1] [ref=e71]
+      - paragraph [ref=e72]: РУЧНАЯ РАБОТА. НАТУРАЛЬНАЯ КОЖА И ХЛОПОК. МИНИМАЛИЗМ И ДОЛГОВЕЧНОСТЬ.
+      - generic [ref=e73]:
+        - generic [ref=e74]:
+          - generic [ref=e75]: Направление
+          - generic [ref=e76]: Ателье Кожи и Текстиля
+        - generic [ref=e77]:
+          - generic [ref=e78]: Материал
+          - generic [ref=e79]: Хлопок 100% / Нат. Кожа
+        - generic [ref=e80]:
+          - generic [ref=e81]: Логистика
+          - generic [ref=e82]: СДЭК / Yandex / Почта
+    - generic [ref=e83]: СКАНИРОВАНИЕ ИНВЕНТАРЯ...
+    - generic [ref=e88]:
+      - heading "ЭКИПИРОВКА ДЛЯ ЭПОХИ НЕОПРЕДЕЛЕННОСТИ" [level=2] [ref=e89]
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - generic [ref=e92]:
+            - generic [ref=e93]: SYSTEM_01
+            - heading "АВТОНОМНОСТЬ" [level=3] [ref=e94]
+          - paragraph [ref=e95]: МЫ СОЗДАЕМ ИНСТРУМЕНТЫ, КОТОРЫЕ НЕ ТРЕБУЮТ ЗАМЕНЫ КАЖДЫЙ СЕЗОН. ВЕЩИ, КОТОРЫЕ СТАНОВЯТСЯ ВАШЕЙ ЧАСТЬЮ.
+        - generic [ref=e96]:
+          - generic [ref=e97]:
+            - generic [ref=e98]: SYSTEM_02
+            - heading "МАТЕРИАЛ" [level=3] [ref=e99]
+          - paragraph [ref=e100]: ТОЛЬКО НАТУРАЛЬНАЯ КОЖА РАСТИТЕЛЬНОГО ДУБЛЕНИЯ И ПЛОТНЫЙ ХЛОПОК. ТАКТИЛЬНЫЙ КОНТАКТ С РЕАЛЬНОСТЬЮ.
+        - generic [ref=e101]:
+          - generic [ref=e102]:
+            - generic [ref=e103]: SYSTEM_03
+            - heading "РУЧНОЙ ТРУД" [level=3] [ref=e104]
+          - paragraph [ref=e105]: КАЖДЫЙ ШОВ СДЕЛАН ВРУЧНУЮ В САНКТ-ПЕТЕРБУРГЕ. НИКАКОГО МАСС-МАРКЕТА, ТОЛЬКО ОГРАНИЧЕННЫЕ ТИРАЖИ.
+      - generic [ref=e106]:
+        - generic [ref=e107]:
+          - heading "ФИЛОСОФИЯ САМООБЕСПЕЧЕНИЯ." [level=4] [ref=e108]
+          - paragraph [ref=e109]: МЫ СОЗДАЕМ ВЕЩИ ДЛЯ ТЕХ, КТО ПРИВЫК ПОЛАГАТЬСЯ НА СЕБЯ. КАЖДЫЙ ПРЕДМЕТ — ЭТО ВАШ ЛИЧНЫЙ АКТ АВТОНОМНОСТИ В ЦИФРОВОМ ХАОСЕ.
+        - generic [ref=e110]: протокол_активен
+  - contentinfo [ref=e111]:
+    - generic [ref=e112]:
+      - generic [ref=e113]:
+        - heading "ТАК И РАТ" [level=2] [ref=e114]
+        - paragraph [ref=e115]: АТЕЛЬЕ КОЖИ И ТЕКСТИЛЯ. ИНСТРУМЕНТЫ ДЛЯ АВТОНОМНОСТИ.
+      - generic [ref=e116]:
+        - generic [ref=e117]:
+          - heading "ИНФО" [level=4] [ref=e118]
+          - list [ref=e119]:
+            - listitem [ref=e120]:
+              - button "Доставка" [ref=e121] [cursor=pointer]
+            - listitem [ref=e122]:
+              - button "Оплата" [ref=e123] [cursor=pointer]
+            - listitem [ref=e124]:
+              - button "Возврат" [ref=e125] [cursor=pointer]
+            - listitem [ref=e126]:
+              - button "ФЗ-152 / ФЗ-422" [ref=e127] [cursor=pointer]
+        - generic [ref=e128]:
+          - heading "СЕТЬ" [level=4] [ref=e129]
+          - list [ref=e130]:
+            - listitem [ref=e131]:
+              - link "Telegram" [ref=e132] [cursor=pointer]:
+                - /url: https://t.me/takandrat_bot
+            - listitem [ref=e133]:
+              - button "Контакты" [ref=e134] [cursor=pointer]
+            - listitem [ref=e135]:
+              - button "Поддержка" [ref=e136] [cursor=pointer]
+    - generic [ref=e137]:
+      - generic [ref=e138]: © 2025 ТАК И РАТ // САНКТ-ПЕТЕРБУРГ
+      - generic [ref=e139]:
+        - generic [ref=e140]: Ручная Работа
+        - generic [ref=e141]: Соответствие Стандартам
+        - generic [ref=e142]: v.4.2
