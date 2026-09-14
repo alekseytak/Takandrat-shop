@@ -1,0 +1,17 @@
+{
+  "providers": [
+    {
+      "name": "oneprovider",
+      "baseURL": "https://api.oneprovider.dev/v1",
+      "capabilities": ["image"],
+      "apiKeyEnv": "ONEPROVIDER_API_KEY"
+    },
+    {
+      "name": "future-video-voice",
+      "baseURL": "https://example.com/api",
+      "capabilities": ["video", "voice"],
+      "apiKeyEnv": "VIDEO_VOICE_API_KEY",
+      "enabled": false
+    }
+  ]
+}
