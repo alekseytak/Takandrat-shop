@@ -23,10 +23,10 @@ export const Checkout: React.FC = () => {
     setError(null);
     setIsSubmitting(true);
     const form = new FormData(e.currentTarget);
-    const telegramId = useStore.getState().currentUser?.telegram_id;
     try {
       const result = await adminService.createOrder({
-        telegram_id: telegramId,
+        // Личность покупателя не отправляем: сервер берёт её из подписи
+        // Telegram. Имя остаётся только для уведомления мастеру.
         customer_name: useStore.getState().currentUser?.first_name || 'Покупатель Telegram',
         phone: '',
         address: String(form.get('address') || ''),

@@ -15,7 +15,11 @@
  * видит понятную причину, а корзина не пропадает. Никакого реального заказа
  * не создаётся: сервер заказов намеренно не поднят.
  */
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
+import { existsSync, openSync, readFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+
+const CHROME_LOG = '/tmp/shop-smoke-chrome.log';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 const CHROME = process.env.CHROME_PATH
@@ -31,24 +35,37 @@ const check = (name, ok, detail = '') => {
   else { failures.push(`${name}${detail ? ` — ${detail}` : ''}`); console.log(`  ПРОВАЛ ${name}${detail ? ` — ${detail}` : ''}`); }
 };
 
+// Зависший браузер с тем же профилем не даёт запуститься новому: Chrome
+// отказывается работать с занятым профилем и молча выходит. Поэтому сначала
+// убираем остатки прошлого запуска, иначе проверка падает непонятно почему.
+try { execFileSync('/usr/bin/pkill', ['-f', PROFILE], { stdio: 'ignore' }); } catch { /* никого не было — и хорошо */ }
+try { rmSync(join(PROFILE, 'SingletonLock'), { force: true }); } catch { /* профиля ещё нет */ }
+rmSync(CHROME_LOG, { force: true });
+
+const chromeLog = openSync(CHROME_LOG, 'a');
 const chrome = spawn(CHROME, [
   '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check',
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${PROFILE}`, 'about:blank',
-], { stdio: 'ignore' });
+], { stdio: ['ignore', chromeLog, chromeLog] });
 
 const stop = () => { try { chrome.kill('SIGKILL'); } catch {} };
 
 try {
-  // Ждём, пока Chrome поднимет отладочный порт.
+  // Ждём, пока Chrome поднимет отладочный порт. На загруженной машине это
+  // может занять и полминуты, поэтому ждём долго и говорим, что ждём.
   let target = null;
-  for (let attempt = 0; attempt < 40 && !target; attempt += 1) {
+  for (let attempt = 0; attempt < 240 && !target; attempt += 1) {
     await sleep(250);
+    if (attempt === 40) console.log('  жду Chrome: запускается дольше обычного');
     try {
       const list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json();
       target = list.find((item) => item.type === 'page');
     } catch { /* порт ещё не слушает */ }
   }
-  if (!target) throw new Error('Chrome не поднял отладочный порт');
+  if (!target) {
+    const log = existsSync(CHROME_LOG) ? readFileSync(CHROME_LOG, 'utf8').trim().split('\n').slice(-3).join(' | ') : 'журнала нет';
+    throw new Error(`Chrome не поднял отладочный порт ${PORT}. Последнее из журнала: ${log}`);
+  }
 
   const ws = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });

@@ -79,14 +79,19 @@ export const adminService = {
    * правкой запроса. Размер передаётся — по нему мастер шьёт изделие.
    */
   async createOrder(orderPayload: {
-    telegram_id?: number;
     customer_name: string;
     phone: string;
     address: string;
     items: { product_id: string; quantity: number; size: string }[];
   }): Promise<{ order_id: string; total?: number }> {
     try {
-      return await invokeFunction('admin-ai', { action: 'create_order', payload: orderPayload });
+      // Подпись Telegram едет вместе с заказом: сервер иначе не знает, кто
+      // заказывает, и верит полю telegram_id на слово. См. telegram.ts.
+      const initData = (window as any)?.Telegram?.WebApp?.initData;
+      return await invokeFunction('admin-ai', {
+        action: 'create_order',
+        payload: { ...orderPayload, init_data: typeof initData === 'string' ? initData : '' },
+      });
     } catch (error: any) {
       throw new Error(orderErrorMessage(error));
     }

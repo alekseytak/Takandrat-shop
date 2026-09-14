@@ -2,6 +2,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.1";
 import { GoogleGenAI, Type } from "https://esm.sh/@google/genai@1.40.0";
 import { buildOrder } from "./order.ts";
+import { verifyInitData } from "./telegram.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,10 +24,26 @@ Deno.serve(async (req: Request) => {
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     if (action === 'create_order') {
-      const { telegram_id, customer_name, phone, address, items } = payload || {};
+      const { telegram_id, customer_name, phone, address, items, init_data } = payload || {};
       if (typeof address !== 'string' || address.trim().length === 0) {
         return new Response(JSON.stringify({ error: 'INVALID_ORDER', reason: 'EMPTY_ADDRESS' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
+
+      // Кто заказывает — тоже не берём на слово. Раньше telegram_id приходил
+      // из тела запроса, и заказ можно было создать от чужого имени. Теперь
+      // личность берётся из подписи Telegram, а без подписи заказа нет.
+      const botTokenForSignature = Deno.env.get('TELEGRAM_BOT_TOKEN') || '';
+      if (botTokenForSignature.length === 0) {
+        // Открытый приём заказов хуже отказа: без токена подпись проверить
+        // нечем, значит проверить личность покупателя невозможно.
+        return new Response(JSON.stringify({ error: 'INVALID_ORDER', reason: 'INIT_DATA_UNVERIFIABLE' }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const signature = await verifyInitData(init_data, botTokenForSignature);
+      if (!signature.ok) {
+        return new Response(JSON.stringify({ error: 'INVALID_ORDER', reason: signature.reason }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const buyerId = signature.user.id;
+      const buyerName = signature.user.first_name || customer_name || 'Покупатель Telegram';
 
       // Цене, количеству и наличию из браузера не верим: их диктует каталог.
       // Раньше сумма считалась по price_cents из запроса, то есть любой мог
@@ -50,8 +67,8 @@ Deno.serve(async (req: Request) => {
       }
 
       const { data: order, error } = await supabaseClient.from('orders').insert({
-        telegram_id: telegram_id || null,
-        customer_info: { telegram_id: telegram_id || null },
+        telegram_id: buyerId,
+        customer_info: { telegram_id: buyerId, verified_by: 'telegram_init_data' },
         shipping_address: address.trim(),
         items: built.lines,
         total_price: built.totalCents / 100,
@@ -69,7 +86,7 @@ Deno.serve(async (req: Request) => {
           .join('\n');
         await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: adminChatId, text: `НОВЫЙ ЗАКАЗ #${order.id}\n${customer_name}\n${phone}\n${address}\n${composition}\nСумма: ${(built.totalCents / 100).toFixed(2)} ₽` })
+          body: JSON.stringify({ chat_id: adminChatId, text: `НОВЫЙ ЗАКАЗ #${order.id}\n${buyerName}\n${phone}\n${address}\n${composition}\nСумма: ${(built.totalCents / 100).toFixed(2)} ₽` })
         });
       }
       return new Response(JSON.stringify({ order_id: order.id, total: built.totalCents / 100 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
