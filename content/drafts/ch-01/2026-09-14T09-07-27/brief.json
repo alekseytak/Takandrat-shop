@@ -1,0 +1,21 @@
+{
+  "product_id": "ch-01",
+  "name": "Картхолдер VEGETABLE",
+  "asset_type": "photo_catalog",
+  "placement": "catalog",
+  "source_files": [
+    "public/products/01.jpg"
+  ],
+  "facts": [
+    "Картхолдер VEGETABLE",
+    "цена 2900 ₽",
+    "Растительное дубление",
+    "Ручной шов",
+    "Экипировка для автономности"
+  ],
+  "missing_facts": [],
+  "model": "gemini-3.1-flash-image",
+  "verify_model": "deepseek-v4-flash-vision-exp",
+  "prompt": "Замени фон на ровный светло-серый студийный. Само изделие оставь без единого изменения: тот же предмет, тот же ракурс, тот же свет на коже, те же швы и фурнитура. Ничего не добавляй и ничего не убирай.",
+  "created_at": "2026-09-14T09:07:27.825Z"
+}

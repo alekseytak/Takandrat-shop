@@ -31,6 +31,9 @@ npm run dev
 Проверки перед публикацией:
 
 ```bash
+npm run factory calibrate   # проверка, что проверка фабрики умеет говорить «нет»
+npm run mail address        # адрес временного ящика агента
+
 npm run lint         # типы
 npm run build        # сборка
 npm run check:order  # правила заказа: цена, количество, наличие (26 проверок)
@@ -115,6 +118,10 @@ curl https://YOUR-DOMAIN/api/payment-details
 - `src/lib/orderError.ts` — перевод причин отказа сервера на русский; список причин взят из `order.ts`, поэтому новая причина не может остаться без объяснения.
 - `supabase/functions/admin-ai/order.ts` — проверки и расчёт заказа по каталогу.
 - `scripts/shop-smoke.mjs` — сквозная проверка витрины и корзины в браузере; адрес задаётся через `SHOP_URL`.
+- `tools/factory.ts` — фабрика контента: правка фото товара моделями со сверкой
+  с исходником по списку свойств. Что шлюз умеет и почему черновики
+  отклоняются — [`docs/CONTENT_FACTORY.md`](docs/CONTENT_FACTORY.md).
+- `tools/mail.mjs` — временный ящик для регистраций в сервисах.
 - `api/payment-details.ts` — Vercel Serverless Function для реквизитов оплаты.
 - `supabase/functions/admin-ai/index.ts` — создание заказов, управление данными, уведомления.
 - `supabase/functions/telegram-bot/index.ts` — Telegram-бот.

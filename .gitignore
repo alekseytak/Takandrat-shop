@@ -41,3 +41,8 @@ pnpm-debug.log*
 
 # Загрузки агента (артефакты сессии, не содержимое проекта)
 .dsh-uploads
+
+# Черновики фабрики контента: картинки большие и воспроизводимые,
+# а записи о них (brief.json, facts.json, verdict.json) — нет, их храним
+content/drafts/**/*.png
+content/drafts/**/*.jpg

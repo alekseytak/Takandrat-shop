@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "check:order": "node supabase/functions/admin-ai/order.test.ts",
-    "check:shop": "node scripts/shop-smoke.mjs"
+    "check:shop": "node scripts/shop-smoke.mjs",
+    "factory": "tsx tools/factory.ts",
+    "mail": "node tools/mail.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.9.0",
