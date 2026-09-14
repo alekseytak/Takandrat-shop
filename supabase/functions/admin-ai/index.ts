@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.1";
 import { GoogleGenAI, Type } from "https://esm.sh/@google/genai@1.40.0";
 import { buildOrder } from "./order.ts";
 import { verifyInitData } from "./telegram.ts";
+import { decideByKey, idempotencyKey } from "./idempotency.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,7 +25,7 @@ Deno.serve(async (req: Request) => {
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     if (action === 'create_order') {
-      const { telegram_id, customer_name, phone, address, items, init_data } = payload || {};
+      const { telegram_id, customer_name, phone, address, items, init_data, idempotency_key } = payload || {};
       if (typeof address !== 'string' || address.trim().length === 0) {
         return new Response(JSON.stringify({ error: 'INVALID_ORDER', reason: 'EMPTY_ADDRESS' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
@@ -66,9 +67,38 @@ Deno.serve(async (req: Request) => {
         return new Response(JSON.stringify({ error: 'INVALID_ORDER', reason: built.reason, detail: built.detail ?? null }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      // Тот же ключ — тот же заказ. Если ответ потерялся в сети и покупатель
+      // нажал ещё раз, второй заказ не создаётся: возвращаем прежний.
+      // Запрос к базе может не поддержать разбор jsonb — тогда честно
+      // помечаем, что проверка не выполнялась, но заказ не теряем.
+      const repeatKey = idempotencyKey(idempotency_key);
+      let existing: { id: string; total_price?: number | null }[] | null = null;
+      let keyChecked = false;
+      if (repeatKey !== null) {
+        const { data, error: lookupError } = await supabaseClient
+          .from('orders')
+          .select('id, total_price')
+          .eq('customer_info->>idempotency_key', repeatKey)
+          .limit(5);
+        if (lookupError) {
+          console.warn('[ORDER_IDEMPOTENCY] проверка ключа не удалась:', lookupError.message);
+        } else {
+          existing = data ?? [];
+          keyChecked = true;
+        }
+      }
+      const repeat = decideByKey(existing, repeatKey);
+      if (repeat.kind === 'repeat') {
+        return new Response(JSON.stringify({ order_id: repeat.orderId, total: repeat.total, repeated: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       const { data: order, error } = await supabaseClient.from('orders').insert({
         telegram_id: buyerId,
-        customer_info: { telegram_id: buyerId, verified_by: 'telegram_init_data' },
+        customer_info: {
+          telegram_id: buyerId,
+          verified_by: 'telegram_init_data',
+          ...(repeatKey === null ? {} : { idempotency_key: repeatKey, idempotency_checked: keyChecked }),
+        },
         shipping_address: address.trim(),
         items: built.lines,
         total_price: built.totalCents / 100,

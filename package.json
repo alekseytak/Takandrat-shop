@@ -13,7 +13,8 @@
     "check:shop": "node scripts/shop-smoke.mjs",
     "factory": "tsx tools/factory.ts",
     "mail": "node tools/mail.mjs",
-    "check:telegram": "node supabase/functions/admin-ai/telegram.test.ts"
+    "check:telegram": "node supabase/functions/admin-ai/telegram.test.ts",
+    "check:idempotency": "node supabase/functions/admin-ai/idempotency.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.9.0",

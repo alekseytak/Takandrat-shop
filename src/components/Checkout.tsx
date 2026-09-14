@@ -18,6 +18,14 @@ export const Checkout: React.FC = () => {
       .catch(() => setPayment({ card: null, cardRecipient: null, crypto: null, cryptoNetwork: null }));
   }, []);
 
+  // Ключ один на всю попытку оформления: он переживает повторное нажатие,
+  // поэтому второй заказ не создаётся, если ответ потерялся в сети.
+  const idempotencyKeyRef = React.useRef<string>(
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `order-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+
   const handleCheckout = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -32,6 +40,7 @@ export const Checkout: React.FC = () => {
         address: String(form.get('address') || ''),
         // Цену не отправляем: её считает сервер по каталогу. Размер отправляем —
         // по нему шьют изделие.
+        idempotency_key: idempotencyKeyRef.current,
         items: cart.map(item => ({
           product_id: String(item.db_id ?? item.id),
           quantity: item.quantity,

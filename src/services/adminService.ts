@@ -82,8 +82,10 @@ export const adminService = {
     customer_name: string;
     phone: string;
     address: string;
+    /** Один ключ на попытку оформления: повтор не создаёт второй заказ. */
+    idempotency_key?: string;
     items: { product_id: string; quantity: number; size: string }[];
-  }): Promise<{ order_id: string; total?: number }> {
+  }): Promise<{ order_id: string; total?: number; repeated?: boolean }> {
     try {
       // Подпись Telegram едет вместе с заказом: сервер иначе не знает, кто
       // заказывает, и верит полю telegram_id на слово. См. telegram.ts.
