@@ -24,8 +24,26 @@
 запрос, посмотри колонки здесь или спроси базу: описание REST отдаётся запросом
 `GET /rest/v1/` с заголовком `Accept: application/openapi+json`.
 
-Чтобы привести миграции в соответствие с базой, нужен пароль базы (служебный
-ключ для DDL не годится) и `supabase db pull` либо `pg_dump --schema-only`.
+### Как менять схему и функции
+
+`execute_sql` служебным ключом пропускает **только SELECT** (`Only SELECT
+queries allowed`), поэтому DDL им не сделать. Рабочий путь — Management API
+личным токеном доступа (`sbp_…`, панель → Account → Access Tokens):
+
+```bash
+curl -X POST -H "Authorization: Bearer $(cat ~/.takandrat/supabase-token)" \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"select 1"}' \
+  https://api.supabase.com/v1/projects/xxkafurxhvcclwzabawm/database/query
+```
+
+Токен хранится в `~/.takandrat/supabase-token` (права 600) и в репозиторий не
+попадает. Проект: `xxkafurxhvcclwzabawm`, зона `eu-central-1`.
+
+Правило про права: новая функция в схеме `public` в Supabase **по умолчанию
+разрешается ролям `anon` и `authenticated`**. Отзыва у `PUBLIC` недостаточно —
+отзывайте у каждой роли поимённо, иначе публичный ключ вызовет то, что вы
+считали закрытым (так публичный ключ создавал заказы).
 Прямое подключение к базе идёт только по IPv6 (`db.<проект>.supabase.co`
 разрешается в IPv6-адрес, и с этой машины маршрута до него нет): работать
 нужно через пулер, зона проекта — `aws-1-eu-central-1`.

@@ -119,5 +119,17 @@ await probe('свой SQL нельзя выполнить публично', () 
   return [false, `неожиданный ответ HTTP ${r.status} ${JSON.stringify(r.body)?.slice(0, 120)}`];
 });
 
+// Заказ нельзя создать публичным ключом: иначе кто угодно оформит заказ от
+// чужого имени в обход проверки подписи Telegram — ровно та дыра, ради которой
+// заказ создаёт служебная функция после проверки подписи.
+await probe('заказ нельзя создать в обход функции', () => request('/rest/v1/rpc/create_order', {
+  method: 'POST',
+  body: JSON.stringify({ payload: { telegram_id: '1', address: 'проба границы доступа', items: [] } }),
+}), (r) => {
+  if (r.status === 401 || r.status === 403) return [true, `HTTP ${r.status}`];
+  if (r.status === 200 || r.status === 201) return [false, 'публичный ключ создал заказ — личность покупателя не проверяется'];
+  return [false, `неожиданный ответ HTTP ${r.status} ${JSON.stringify(r.body)?.slice(0, 120)}`];
+});
+
 console.log(`\n${failed === 0 ? 'Граница на месте: публичный ключ видит только витрину.' : `Не прошло проверок: ${failed}. Смотрите docs/SUPABASE_SETUP.md: живая схема и права описаны там.`}`);
 process.exit(failed === 0 ? 0 : 1);
