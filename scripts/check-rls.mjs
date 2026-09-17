@@ -105,10 +105,19 @@ await probe('заказ нельзя вставить в обход функци
   return [false, `запись дошла до базы: HTTP ${r.status} ${JSON.stringify(r.body)?.slice(0, 140)}`];
 });
 
-await probe('склад нельзя списать публично', () => request('/rest/v1/rpc/decrement_stock', {
+// Раньше здесь проверялась функция decrement_stock, которой в живой базе нет
+// вовсе: проба считала 404 успехом, то есть проходила по ложной причине.
+// Теперь проверяется то, что в базе есть и что действительно опасно:
+// execute_sql — выполнение своего SQL. Запрос безобидный: select 1.
+await probe('свой SQL нельзя выполнить публично', () => request('/rest/v1/rpc/execute_sql', {
   method: 'POST',
-  body: JSON.stringify({ p_id: -1, p_qty: 0 }),
-}), (r) => [r.status === 401 || r.status === 403 || r.status === 404, `HTTP ${r.status} ${JSON.stringify(r.body)?.slice(0, 120)}`]);
+  body: JSON.stringify({ query: 'select 1 as ok' }),
+}), (r) => {
+  if (r.status === 401 || r.status === 403) return [true, `HTTP ${r.status}`];
+  if (r.status === 200) return [false, 'публичный ключ выполнил свой SQL — это полный доступ к базе'];
+  if (r.status === 404) return [false, 'функции execute_sql нет — проверка ничего не проверяет'];
+  return [false, `неожиданный ответ HTTP ${r.status} ${JSON.stringify(r.body)?.slice(0, 120)}`];
+});
 
-console.log(`\n${failed === 0 ? 'Граница на месте: публичный ключ видит только витрину.' : `Не прошло проверок: ${failed}. Смотрите supabase/migrations/20260914001000_rls_hardening.sql.`}`);
+console.log(`\n${failed === 0 ? 'Граница на месте: публичный ключ видит только витрину.' : `Не прошло проверок: ${failed}. Смотрите docs/SUPABASE_SETUP.md: живая схема и права описаны там.`}`);
 process.exit(failed === 0 ? 0 : 1);
