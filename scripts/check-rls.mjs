@@ -90,20 +90,19 @@ await probe('заказы покупателей не читаются', () => r
 await probe('покупатели не читаются', () => request('/rest/v1/users?select=telegram_id&limit=3'),
   (r) => [r.status === 401 || r.status === 403 || (Array.isArray(r.body) && r.body.length === 0), `HTTP ${r.status} ${JSON.stringify(r.body)?.slice(0, 120)}`]);
 
-// Заказ без адреса: при закрытой базе отказ придёт до проверки полей, при
-// открытой — база дойдёт до ограничения NOT NULL. Данные не создаются ни так,
-// ни так, но по ответу видно, пустили ли запись вообще.
+// Вставка заказа публичным ключом. Поля берём те, что есть в живой базе
+// (orders.items в ней нет вовсе — позиции лежат в order_items), иначе ответ
+// придёт про схему, а не про права, и проба ничего не докажет.
 await probe('заказ нельзя вставить в обход функции', () => request('/rest/v1/orders', {
   method: 'POST',
   headers: { Prefer: 'return=representation' },
-  body: JSON.stringify({ items: [], total_price: 1 }),
+  body: JSON.stringify({ shipping_address: 'проба границы доступа', total_price: 1 }),
 }), (r) => {
-  if (r.status === 401 || r.status === 403) return [true];
-  if (r.status === 400 && JSON.stringify(r.body).includes('shipping_address')) {
-    return [false, 'запись разрешена: база дошла до проверки полей, значит политики orders_insert_anon ещё нет'];
-  }
+  // Правило простое: публичный ключ должен получить отказ в правах. Любой
+  // другой ответ означает, что запись дошла до базы, и это дыра.
+  if (r.status === 401 || r.status === 403) return [true, `HTTP ${r.status}`];
   if (r.status === 201) return [false, 'заказ действительно создан — база открыта на запись'];
-  return [false, `неожиданный ответ HTTP ${r.status} ${JSON.stringify(r.body)?.slice(0, 120)}`];
+  return [false, `запись дошла до базы: HTTP ${r.status} ${JSON.stringify(r.body)?.slice(0, 140)}`];
 });
 
 await probe('склад нельзя списать публично', () => request('/rest/v1/rpc/decrement_stock', {

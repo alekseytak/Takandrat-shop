@@ -103,7 +103,15 @@ try {
   })
 
   const status = textOf(await ask(3, 'tools/call', { name: 'shop_status', arguments: {} }))
+  // Ошибка базы в ответе инструмента — это провал: раньше проверка этого не
+  // замечала и «ок» стояло рядом с текстом ошибки схемы.
+  const noError = (answer: string): string => {
+    expect(!/^ошибка:/.test(answer.trim()), `инструмент вернул ошибку: ${answer.slice(0, 160)}`)
+    return answer
+  }
+
   check('shop_status отвечает', () => {
+    noError(status)
     const connected = /магазин на связи/.test(status)
     const unconnected = /не подключён к базе/.test(status)
     expect(connected || unconnected, `неожиданный ответ: ${status.slice(0, 120)}`)
@@ -117,6 +125,7 @@ try {
 
   const products = textOf(await ask(4, 'tools/call', { name: 'shop_products', arguments: { limit: 3 } }))
   check('shop_products отвечает по делу', () => {
+    noError(products)
     expect(!/неизвестный инструмент/.test(products), 'сервер не знает shop_products')
     expect(products.length > 0, 'пустой ответ')
   })
@@ -146,6 +155,7 @@ try {
 
   const orders = textOf(await ask(6, 'tools/call', { name: 'shop_orders', arguments: { limit: 2 } }))
   check('shop_orders отвечает', () => {
+    noError(orders)
     expect(!/неизвестный инструмент/.test(orders), 'сервер не знает shop_orders')
     expect(orders.length > 0, 'пустой ответ')
   })

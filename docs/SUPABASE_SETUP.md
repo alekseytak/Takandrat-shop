@@ -1,5 +1,35 @@
 # База магазина: как поднять заново и как проверить границу
 
+## Живая схема базы (проверено 14 сентября)
+
+Это **настоящая** схема боевой базы, снятая через описание REST служебным
+ключом. Она богаче миграций в `supabase/migrations/`: те были восстановлены по
+памяти из чужой рабочей копии и к этой базе никогда не применялись. Позиции
+заказа в живой базе лежат отдельной таблицей `order_items`, а не в
+`orders.items` — файл миграции этого не знает.
+
+| Таблица | Колонки |
+|---|---|
+| `products` | id, name, description, price, image_url, category, stock_quantity, is_visible, created_at, updated_at |
+| `orders` | id, user_id, telegram_id, total_price, status, payment_method, shipping_address, customer_info, notes, created_at, updated_at |
+| `order_items` | id, order_id, product_id, quantity, price_at_time, selected_size, created_at |
+| `users` | id, telegram_id, username, first_name, last_name, is_admin, phone, city, address, created_at, updated_at |
+| `cart_items` | id, user_id, product_id, quantity, selected_size, added_at |
+| `inventory` | id, product_id, sku, quantity, updated_at |
+| `payments` | id, order_id, payment_id, amount, status, payment_method, webhook_received, created_at, updated_at |
+| `messages` | id, created_at, session_id, content, is_user |
+| `chat_history` | id, user_id, role, content, created_at |
+
+Правило: **источник правды — база, а не файл миграции.** Прежде чем писать
+запрос, посмотри колонки здесь или спроси базу: описание REST отдаётся запросом
+`GET /rest/v1/` с заголовком `Accept: application/openapi+json`.
+
+Чтобы привести миграции в соответствие с базой, нужен пароль базы (служебный
+ключ для DDL не годится) и `supabase db pull` либо `pg_dump --schema-only`.
+Прямое подключение к базе идёт только по IPv6 (`db.<проект>.supabase.co`
+разрешается в IPv6-адрес, и с этой машины маршрута до него нет): работать
+нужно через пулер, зона проекта — `aws-1-eu-central-1`.
+
 ## Что случилось
 
 Проект Supabase магазина жив: 14 сентября служебным ключом проверено, что

@@ -72,7 +72,7 @@ const tools = [
   {
     name: 'shop_orders',
     description:
-      'Заказы магазина: номер, время, статус, сумма, покупатель и состав. Свежие сверху. Только чтение.',
+      'Заказы магазина: номер, время, статус, сумма, покупатель и сколько единиц товара. Свежие сверху. Только чтение.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -132,13 +132,21 @@ const callTool = async (name: string, args: Row): Promise<string> => {
     const limit = limitOf(args.limit, 10)
     const status = typeof args.status === 'string' && args.status ? `&status=eq.${encodeURIComponent(args.status)}` : ''
     const rows = await query(
-      `orders?select=id,created_at,status,total_price,customer_name,items,payment_method&order=created_at.desc${status}&limit=${limit}`,
+      `orders?select=id,created_at,status,total_price,payment_method,telegram_id,user_id&order=created_at.desc${status}&limit=${limit}`,
     )
     if (rows.length === 0) return 'заказов нет'
+    // Позиции заказа лежат отдельной таблицей order_items — так устроена живая
+    // база. В orders их нет, и попытка прочитать items оттуда даёт ошибку схемы.
+    const ids = rows.map((row) => row.id).join(',')
+    const items = await query(`order_items?select=order_id,quantity&order_id=in.(${ids})`)
+    const units = new Map<unknown, number>()
+    for (const item of items) {
+      units.set(item.order_id, (units.get(item.order_id) ?? 0) + Number(item.quantity ?? 0))
+    }
     return rows
       .map((row) => {
-        const items = Array.isArray(row.items) ? row.items.length : 0
-        return `#${row.id} ${row.created_at} — ${row.status}, ${row.total_price} ₽, позиций: ${items}, оплата: ${row.payment_method}, покупатель: ${row.customer_name ?? 'не указан'}`
+        const buyer = row.telegram_id ? `telegram ${row.telegram_id}` : row.user_id ? `пользователь ${row.user_id}` : 'не указан'
+        return `#${row.id} ${row.created_at} — ${row.status}, ${row.total_price} ₽, единиц товара: ${units.get(row.id) ?? 0}, оплата: ${row.payment_method}, покупатель: ${buyer}`
       })
       .join('\n')
   }
