@@ -133,14 +133,42 @@ try {
   const loaded = await waitFor(`document.readyState === 'complete'`, 'загрузка страницы', 30000);
   check('страница загрузилась', loaded);
 
-  // 1. Витрина: товары пришли из встроенного каталога, потому что база отсюда недоступна.
+  // 1. Витрина: товары должны прийти из живой базы — сверяем с тем, что в ней лежит.
+  // Что должно быть на витрине, берём из живой базы публичным ключом: раньше
+  // проверка ждала название из встроенного каталога — это было верно, пока база
+  // считалась мёртвой, и стало ложью, когда база ожила. Если база недоступна,
+  // возвращаемся к прежнему ожиданию.
+  const expected = await (async () => {
+    const fallback = { names: ['КАРТХОЛДЕР VEGETABLE'], price: '3200' };
+    try {
+      const { readFileSync } = await import('node:fs');
+      const rows = readFileSync(new URL('../.env', import.meta.url), 'utf8').split('\n');
+      const val = (name) => rows.find((row) => row.startsWith(`${name}=`))?.slice(name.length + 1).trim();
+      const url = val('VITE_SUPABASE_URL');
+      const key = val('VITE_SUPABASE_ANON_KEY');
+      if (!url || !key) return fallback;
+      const res = await fetch(`${url}/rest/v1/products?select=name,price&is_visible=eq.true&order=id&limit=5`, {
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+      });
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : [];
+      const names = list.map((row) => String(row.name ?? '').toUpperCase()).filter(Boolean);
+      if (names.length === 0) return fallback;
+      return { names, price: String(Math.trunc(Number(list[0].price ?? 0))) };
+    } catch {
+      return fallback;
+    }
+  })();
+  console.log(`       витрина должна показать: ${expected.names[0]} за ${expected.price}`);
+
   const catalogShown = await waitFor(
-    `(document.body?.innerText || '').toUpperCase().includes('КАРТХОЛДЕР VEGETABLE')`, 'товары на витрине', 30000);
+    `${JSON.stringify(expected.names)}.some((n) => (document.body?.innerText || '').toUpperCase().includes(n))`,
+    'товары на витрине', 30000);
   check('витрина показывает товары', catalogShown);
   if (!catalogShown) throw new Error('витрина не отрисовалась — дальше проверять нечего');
 
   const shop = await text();
-  check('цена ремня на витрине', contains(shop, '3200'), 'нет 3200');
+  check('цена товара на витрине', contains(shop, expected.price), `нет ${expected.price}`);
   check('крутилка «СКАНИРОВАНИЕ ИНВЕНТАРЯ» не залипла', !contains(shop, 'СКАНИРОВАНИЕ ИНВЕНТАРЯ'));
 
   // 2. Корзина: кладём товар и смотрим счётчик в шапке.

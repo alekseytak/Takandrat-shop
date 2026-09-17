@@ -11,6 +11,8 @@
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
+import { homedir } from 'node:os'
+import { readFileSync } from 'node:fs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const server = resolve(here, 'mcp-shop.ts')
@@ -30,6 +32,30 @@ const check = (name: string, run: () => void): void => {
 const expect = (condition: boolean, message: string): void => {
   if (!condition) throw new Error(message)
 }
+
+// Ключи берём из окружения, а если его нет — из файлов: проверка должна
+// работать сразу после клонирования, без ручных export.
+const fromFile = (name: string): string | undefined => {
+  try {
+    const line = readFileSync(resolve(here, '..', '.env'), 'utf8')
+      .split('\n')
+      .find((row) => row.startsWith(`${name}=`))
+    return line?.slice(name.length + 1).trim()
+  } catch {
+    return undefined
+  }
+}
+const fromDrema = (): Record<string, string> => {
+  try {
+    const raw = readFileSync(resolve(homedir(), '.drema/mcp.json'), 'utf8')
+    return (JSON.parse(raw).servers?.['shop-orders']?.env ?? {}) as Record<string, string>
+  } catch {
+    return {}
+  }
+}
+const dremaEnv = fromDrema()
+process.env.SUPABASE_URL ||= dremaEnv.SUPABASE_URL ?? fromFile('SUPABASE_URL')
+process.env.SUPABASE_SERVICE_ROLE_KEY ||= dremaEnv.SUPABASE_SERVICE_ROLE_KEY ?? fromFile('SUPABASE_SERVICE_ROLE_KEY')
 
 const child = spawn('npx', ['tsx', server], {
   cwd: resolve(here, '..'),
@@ -166,7 +192,7 @@ try {
   })
 
   check('в stdout попадает только протокол', () => {
-    expect(failures.length === 0, 'в stdout был посторонний вывод')
+    expect(failures.length === 0, `в stdout был посторонний вывод: ${failures.join(' | ').slice(0, 200)}`)
     expect(stderr.includes('mcp-shop:'), 'сервер не написал диагностику в stderr')
   })
 } catch (error) {
