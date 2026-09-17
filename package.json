@@ -12,6 +12,7 @@
     "check:order": "node supabase/functions/admin-ai/order.test.ts",
     "check:catalog": "tsx tools/catalog-registry.test.ts",
     "check:providers": "tsx tools/provider-config.test.ts",
+    "check:mcp": "tsx tools/mcp-smoke.ts",
     "check:shop": "node scripts/shop-smoke.mjs",
     "factory": "tsx tools/factory.ts",
     "mail": "node tools/mail.mjs",
