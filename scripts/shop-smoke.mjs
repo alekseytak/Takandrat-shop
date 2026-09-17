@@ -188,7 +188,7 @@ try {
   const cartShown = await waitFor(`(document.body?.innerText || '').toUpperCase().includes('КОРЗИНА')`, 'экран корзины', 8000);
   check('экран корзины открылся', cartShown);
   const cart = await text();
-  check('товар в корзине', contains(cart, 'КАРТХОЛДЕР VEGETABLE'), cart.slice(0, 120));
+  check('товар в корзине', contains(cart.toUpperCase(), expected.names[0]), cart.slice(0, 120));
   check('итог посчитан', contains(cart, 'ИТОГО'), 'нет строки «Итого»');
 
   // 4. Оформление заказа.
@@ -204,7 +204,7 @@ try {
     fieldNames === 'address', fieldNames);
   check('предупреждение о реквизитах на месте', contains(checkout, 'ОПЛАТА ПЕРЕВОДОМ'));
   check('на оформлении видно, что именно заказывают',
-    contains(checkout, 'КАРТХОЛДЕР VEGETABLE'), 'состав заказа не показан');
+    contains(checkout.toUpperCase(), expected.names[0]), 'состав заказа не показан');
 
   // 5. Отправка при недоступном сервере: понятная причина и целая корзина.
   await evaluate(`(() => {
@@ -232,7 +232,7 @@ try {
     return true;
   })()`);
   const cartKept = await waitFor(
-    `(document.body?.innerText || '').toUpperCase().includes('КАРТХОЛДЕР VEGETABLE')`,
+    `${JSON.stringify(expected.names)}.some((n) => (document.body?.innerText || '').toUpperCase().includes(n))`,
     'товар в корзине после отказа', 8000);
   check('после отказа корзина не очищена', cartKept, 'товар пропал из корзины');
 
