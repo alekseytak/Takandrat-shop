@@ -131,5 +131,25 @@ await probe('заказ нельзя создать в обход функции
   return [false, `неожиданный ответ HTTP ${r.status} ${JSON.stringify(r.body)?.slice(0, 120)}`];
 });
 
+// Публичный ключ не должен править каталог. Правило «Public products all» с
+// условием `true` разрешало кому угодно и читать, и менять товары: цены, склад,
+// видимость. Проверка записывает в строку её же название, то есть ничего не
+// меняет, но видно, пустили ли запись вообще.
+await probe('каталог нельзя править публичным ключом', async () => {
+  const list = await request('/rest/v1/products?select=id,name&limit=1');
+  const row = Array.isArray(list.body) ? list.body[0] : undefined;
+  if (!row) return { status: 500, body: { message: 'в каталоге нет товаров — проверять нечего' } };
+  return request(`/rest/v1/products?id=eq.${row.id}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ name: row.name }),
+  });
+}, (r) => {
+  if (r.status === 401 || r.status === 403) return [true, `HTTP ${r.status}`];
+  if (Array.isArray(r.body) && r.body.length === 0) return [true, 'запись не прошла'];
+  if (Array.isArray(r.body) && r.body.length > 0) return [false, 'публичный ключ изменил товар в каталоге'];
+  return [false, `неожиданный ответ HTTP ${r.status} ${JSON.stringify(r.body)?.slice(0, 120)}`];
+});
+
 console.log(`\n${failed === 0 ? 'Граница на месте: публичный ключ видит только витрину.' : `Не прошло проверок: ${failed}. Смотрите docs/SUPABASE_SETUP.md: живая схема и права описаны там.`}`);
 process.exit(failed === 0 ? 0 : 1);

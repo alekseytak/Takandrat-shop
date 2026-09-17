@@ -44,7 +44,12 @@ const fromDatabase = (row: Record<string, unknown>): Product => ({
   name: String(row.name ?? ''),
   price: Number(row.price ?? 0),
   description: String(row.description ?? ''),
-  images: row.image_url ? [String(row.image_url)] : [],
+  // Набор снимков товара, если он есть в базе; иначе одна фотография.
+  images: Array.isArray(row.images) && row.images.length > 0
+    ? (row.images as unknown[]).map((item) => String(item))
+    : row.image_url
+      ? [String(row.image_url)]
+      : [],
   category: categoryOf(row.category),
   features: Array.isArray(row.features) ? (row.features as string[]) : [],
 });
