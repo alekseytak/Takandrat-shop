@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ТАК И РАТ — макет витрины (приборная панель)</title>
+<style>
+  /* ── ПРИБОРНАЯ ПАНЕЛЬ ────────────────────────────────────────────────────
+     Язык: аналоговый контроль, механика видна, никакого бесформенного
+     минимализма. Всё, что видит покупатель, — это показание прибора или
+     надпись на корпусе. Цвет один: латунь. Основа — тёплый уголь, не серый. */
+  :root {
+    --ink:    #0e0c0a;
+    --panel:  #16130f;
+    --panel2: #1d1915;
+    --line:   #302a22;
+    --line2:  #453b2e;
+    --paper:  #e9e2d6;
+    --dim:    #9a8f80;
+    --brass:  #d9a441;
+    --brass2: #7a5a20;
+    --leather:#8b5e3c;
+    --alert:  #c4553c;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: "Helvetica Neue", Arial, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--ink); color: var(--paper);
+    font-family: var(--sans); font-size: 15px; line-height: 1.5;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px),
+      radial-gradient(120% 80% at 50% -10%, rgba(217,164,65,.07), transparent 60%);
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px 96px; }
+
+  /* ── СТРОКА СОСТОЯНИЯ ── */
+  .status {
+    position: sticky; top: 0; z-index: 30;
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; margin: 0 -16px 0;
+    background: rgba(14,12,10,.92); backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+  }
+  .status b { color: var(--brass); font-weight: 700; letter-spacing: .18em; }
+  .status .sep { color: var(--line2); }
+  .status .grow { flex: 1; }
+  .signal { display: flex; align-items: flex-end; gap: 2px; height: 12px; }
+  .signal i {
+    display: block; width: 3px; background: var(--brass); opacity: .85;
+    animation: vu 1.6s ease-in-out infinite;
+  }
+  .signal i:nth-child(1){height:4px; animation-delay:0s}
+  .signal i:nth-child(2){height:9px; animation-delay:.18s}
+  .signal i:nth-child(3){height:6px; animation-delay:.36s}
+  .signal i:nth-child(4){height:11px; animation-delay:.54s}
+  .signal i:nth-child(5){height:5px; animation-delay:.72s}
+  @keyframes vu { 0%,100%{transform:scaleY(.45)} 50%{transform:scaleY(1)} }
+  @media (prefers-reduced-motion: reduce) { .signal i { animation: none; } }
+
+  /* ── ЗАГОЛОВОК ── */
+  header { padding: 44px 0 8px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .22em;
+    color: var(--dim); text-transform: uppercase; margin-bottom: 18px;
+  }
+  h1 {
+    font-size: clamp(28px, 6.4vw, 58px); line-height: .96; margin: 0;
+    letter-spacing: -.02em; text-transform: uppercase; font-weight: 800;
+  }
+  h1 span { color: var(--brass); }
+  .lede { max-width: 60ch; margin: 18px 0 0; color: #cfc6b7; }
+  .lede b { color: var(--paper); }
+
+  /* ── ПРИБОРНЫЕ ПОКАЗАНИЯ ── */
+  .readouts {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    margin: 28px 0 8px; border: 1px solid var(--line); background: var(--panel);
+  }
+  .readouts div { padding: 12px 14px; border-right: 1px solid var(--line); }
+  .readouts div:last-child { border-right: 0; }
+  .readouts dt {
+    font-family: var(--mono); font-size: 9px; letter-spacing: .18em;
+    color: var(--brass); text-transform: uppercase; margin: 0 0 6px;
+  }
+  .readouts dd { margin: 0; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+
+  /* ── СЕКЦИИ ── */
+  .rule { display: flex; align-items: center; gap: 12px; margin: 44px 0 18px; }
+  .rule h2 {
+    margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--paper); font-weight: 700;
+  }
+  .rule .line { flex: 1; height: 1px; background: var(--line); }
+  .rule .count { font-family: var(--mono); font-size: 10px; color: var(--dim); letter-spacing: .1em; }
+
+  /* ── МОДУЛИ ТОВАРОВ ── */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 780px) { .grid { grid-template-columns: 1fr; } }
+  .module { border: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; }
+  .module > .cap {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    border-bottom: 1px solid var(--line); background: var(--panel2);
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase;
+  }
+  .cap .obj { color: var(--brass); }
+  .cap .grow { flex: 1; }
+  .cap .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--brass); box-shadow: 0 0 8px var(--brass2); }
+
+  /* кадр со снимком: углы и шкала — механика видна */
+  .frame { position: relative; background: #0b0a09; border-bottom: 1px solid var(--line); }
+  .frame img { display: block; width: 100%; aspect-ratio: 4/3; object-fit: cover; filter: saturate(.92) contrast(1.03); }
+  .frame .tick { position: absolute; width: 12px; height: 12px; border: 1px solid var(--brass); opacity: .8; }
+  .frame .tick.tl { top: 8px; left: 8px; border-right: 0; border-bottom: 0; }
+  .frame .tick.tr { top: 8px; right: 8px; border-left: 0; border-bottom: 0; }
+  .frame .tick.bl { bottom: 8px; left: 8px; border-right: 0; border-top: 0; }
+  .frame .tick.br { bottom: 8px; right: 8px; border-left: 0; border-top: 0; }
+  .scale {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 12px;
+    background:
+      repeating-linear-gradient(90deg, rgba(233,226,214,.5) 0 1px, transparent 1px 10px),
+      repeating-linear-gradient(90deg, rgba(217,164,65,.85) 0 1px, transparent 1px 50px);
+    opacity: .7;
+  }
+  .body { padding: 14px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .body h3 { margin: 0; font-size: 17px; text-transform: uppercase; letter-spacing: .02em; }
+  .body .desc { margin: 0; color: #c6bdaf; font-size: 13.5px; }
+
+  .specs { display: grid; gap: 6px; margin: 0; border-top: 1px solid var(--line); padding-top: 10px; }
+  .specs div { display: flex; gap: 10px; font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+  .specs dt { color: var(--dim); min-width: 92px; margin: 0; }
+  .specs dd { margin: 0; color: var(--paper); }
+
+  /* переключатель размера как ступенчатый регулятор */
+  .switch { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .switch .lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .18em; color: var(--dim); text-transform: uppercase; margin-right: 2px; }
+  .switch button {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .08em; cursor: pointer;
+    padding: 7px 11px; background: transparent; color: var(--paper);
+    border: 1px solid var(--line2); text-transform: uppercase;
+  }
+  .switch button[aria-pressed="true"] { background: var(--brass); border-color: var(--brass); color: #17120a; font-weight: 700; }
+  .switch button:focus-visible, .btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+  .buy { display: flex; align-items: center; gap: 12px; margin-top: auto; padding-top: 4px; }
+  .price { font-family: var(--mono); font-size: 22px; letter-spacing: .02em; }
+  .price small { display: block; font-size: 9px; letter-spacing: .18em; color: var(--dim); text-transform: uppercase; }
+  .btn {
+    margin-left: auto; cursor: pointer; border: 1px solid var(--brass); background: transparent;
+    color: var(--brass); font-family: var(--mono); font-size: 11px; letter-spacing: .16em;
+    text-transform: uppercase; padding: 12px 16px; font-weight: 700;
+  }
+  .btn:hover { background: var(--brass); color: #17120a; }
+  .btn.solid { background: var(--brass); color: #17120a; }
+
+  /* ── КАК ИДЁТ ЗАКАЗ ── */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 780px) { .steps { grid-template-columns: 1fr; } }
+  .step { border: 1px solid var(--line); background: var(--panel); padding: 14px; }
+  .step .n { font-family: var(--mono); font-size: 10px; color: var(--brass); letter-spacing: .2em; }
+  .step h4 { margin: 8px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+  .step p { margin: 0; color: var(--dim); font-size: 13px; }
+
+  /* ── НАКОПИТЕЛЬ (корзина) и БЛАНК ── */
+  .drawer {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    background: rgba(22,19,15,.97); border-top: 1px solid var(--line2);
+    backdrop-filter: blur(8px); transform: translateY(112%); transition: transform .28s ease;
+  }
+  .drawer.open { transform: translateY(0); }
+  .drawer .bar {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  }
+  .drawer .bar .grow { flex: 1; }
+  .drawer .list { max-height: 38vh; overflow: auto; border-top: 1px solid var(--line); }
+  .drawer .row {
+    display: flex; gap: 10px; align-items: baseline; padding: 10px 16px;
+    border-bottom: 1px solid var(--line); font-size: 12.5px;
+  }
+  .drawer .row .nm { text-transform: uppercase; letter-spacing: .03em; }
+  .drawer .row .sz { font-family: var(--mono); font-size: 10px; color: var(--brass); }
+  .drawer .row .sum { margin-left: auto; font-family: var(--mono); }
+  .blank { padding: 14px 16px 18px; border-top: 1px solid var(--line); }
+  .blank .hint { font-family: var(--mono); font-size: 9.5px; letter-spacing: .14em; color: var(--dim); text-transform: uppercase; margin-bottom: 8px; }
+  .blank pre {
+    margin: 0; padding: 12px; background: #0b0a09; border: 1px solid var(--line);
+    font-family: var(--mono); font-size: 11.5px; line-height: 1.65; white-space: pre-wrap; color: #ded5c6;
+  }
+  .blank .actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .empty { padding: 16px; color: var(--dim); font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+
+  footer { border-top: 1px solid var(--line); margin-top: 56px; padding: 20px 0 0; color: var(--dim); font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; display: flex; gap: 16px; flex-wrap: wrap; }
+  footer .grow { flex: 1; }
+  .note { border-left: 2px solid var(--brass); padding-left: 12px; color: var(--dim); font-size: 13px; margin-top: 14px; }
+</style>
+</head>
+<body>
+
+<div class="status">
+  <b>ТАК И РАТ</b><span class="sep">//</span><span>АТЕЛЬЕ, САНКТ-ПЕТЕРБУРГ</span>
+  <span class="grow"></span>
+  <span>СВЯЗЬ: @takandrat_bot</span>
+  <span class="sep">//</span>
+  <span class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+</div>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">МАКЕТ ВИТРИНЫ · ПРИБОРНАЯ ПАНЕЛЬ · НЕ БОЕВАЯ СТРАНИЦА</div>
+    <h1>Экипировка<br>для эпохи<br><span>неопределённости</span></h1>
+    <p class="lede">
+      Кожа растительного дубления и плотный хлопок. Каждый шов — <b>вручную</b>, в
+      Санкт-Петербурге. Никакого масс-маркета: ограниченные тиражи.
+      Заказ уходит <b>сообщением в Telegram</b> — витрина не хранит ваших данных.
+    </p>
+
+    <dl class="readouts">
+      <div><dt>Материал</dt><dd>Кожа раст. дубления</dd></div>
+      <div><dt>Сборка</dt><dd>Ручной шов</dd></div>
+      <div><dt>Тираж</dt><dd>Ограниченный</dd></div>
+    </dl>
+  </header>
+
+  <div class="rule">
+    <h2>Номенклатура</h2><span class="line"></span><span class="count">4 ОБЪЕКТА</span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="rule">
+    <h2>Как идёт заказ</h2><span class="line"></span><span class="count">БЕЗ РЕГИСТРАЦИИ</span>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="n">01 / СБОРКА</div>
+      <h4>Собираете заказ</h4>
+      <p>Выбираете объект, размер, количество. Накопитель считает итог.</p>
+    </div>
+    <div class="step">
+      <div class="n">02 / ПЕРЕДАЧА</div>
+      <h4>Уходит в Telegram</h4>
+      <p>Витрина собирает бланк и открывает чат с мастером — текст уже набран.</p>
+    </div>
+    <div class="step">
+      <div class="n">03 / ПОДТВЕРЖДЕНИЕ</div>
+      <h4>Мастер отвечает</h4>
+      <p>Подтверждает наличие и срок, присылает реквизиты карты или крипты.</p>
+    </div>
+  </div>
+
+  <p class="note">
+    Этот макет показывает, как витрина может выглядеть: приборные подписи,
+    видимая механика вещи, тёплый уголь и латунь вместо серого минимализма.
+    Магазин пока не изменён — сравните и скажите, что берём.
+  </p>
+
+  <footer>
+    <span>ТАК И РАТ // 2026</span>
+    <span class="grow"></span>
+    <span>TELEGRAM @takandrat_bot</span>
+    <span class="sep">//</span>
+    <span>САНКТ-ПЕТЕРБУРГ</span>
+  </footer>
+</div>
+
+<div class="drawer" id="drawer" aria-hidden="true">
+  <div class="bar">
+    <span id="accLabel">НАКОПИТЕЛЬ · 0 ПОЗИЦИЙ</span>
+    <span class="grow"></span>
+    <button class="btn" id="toggleBtn" type="button">СВЕРНУТЬ</button>
+  </div>
+  <div class="list" id="list"></div>
+  <div class="blank" id="blank" hidden>
+    <div class="hint">Бланк заказа — уйдёт сообщением в Telegram</div>
+    <pre id="blankText"></pre>
+    <div class="actions">
+      <button class="btn solid" type="button">ОТКРЫТЬ ЧАТ С МАСТЕРОМ</button>
+      <button class="btn" type="button" id="clearBtn">ОЧИСТИТЬ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Товары — фактические, из каталога владельца. Ничего не придумано.
+  const ITEMS = [
+    {
+      obj: 'ОБЪЕКТ №04', name: 'Контейнер для карт', price: 3900, photo: '/products/web/01.webp',
+      desc: 'Два отделения. Ровно под две карты — не под «всё нужное».',
+      specs: [['Материал', 'Кожа раст. дубления'], ['Отделения', 'Два, под две карты'], ['Шов', 'Ручной, вощёная нить'], ['Торцы', 'Обработаны']],
+      sizes: [],
+    },
+    {
+      obj: 'ОБЪЕКТ №27', name: 'Контейнер для огня', price: 1600, photo: '/products/web/04.webp',
+      desc: 'Корпус под оригинальную BIC. Не «универсальный» — под неё, поэтому сидит плотно.',
+      specs: [['Материал', 'Кожа раст. дубления'], ['Зажигалка', 'Только оригинальная BIC'], ['Шов', 'Ручной'], ['Ношение', 'Связка ключей']],
+      sizes: [],
+    },
+    {
+      obj: 'АРТ. R-07', name: 'Ремень из кожи, 35 мм', price: 5700, photo: '/products/web/07.webp',
+      desc: 'Цельный кусок кожи шириной 35 мм. Не сшит из полос: одна толщина по всей длине.',
+      specs: [['Ширина', '35 мм'], ['Кусок', 'Цельный, не из полос'], ['Пряжка', 'Литая, латунь'], ['Размеры', 'S / M / L / XL']],
+      sizes: ['S', 'M', 'L', 'XL'],
+    },
+    {
+      obj: 'БАЗОВЫЙ СЛОЙ', name: 'ASH GREY', price: 2900, photo: '/products/web/08.webp',
+      desc: 'Плотный хлопок 230 г/м². Плотность названа, потому что она определяет, как вещь сидит.',
+      specs: [['Материал', 'Хлопок 230 г/м²'], ['Горловина', 'Усиленная'], ['Крой', 'Прямой'], ['Размеры', 'M / L / XL']],
+      sizes: ['M', 'L', 'XL'],
+    },
+  ];
+
+  const chosen = new Map();   // индекс товара → размер
+  const cart = [];            // {index, size, qty}
+
+  const money = (n) => n.toLocaleString('ru-RU').replace(/\u00a0/g, ' ') + ' ₽';
+
+  const grid = document.getElementById('grid');
+  ITEMS.forEach((item, index) => {
+    const module = document.createElement('article');
+    module.className = 'module';
+    module.innerHTML = `
+      <div class="cap"><span class="obj">${item.obj}</span><span class="grow"></span><span class="dot"></span><span>НАЛИЧИЕ: ПАРА ШТ</span></div>
+      <div class="frame">
+        <img src="${item.photo}" alt="${item.name}" loading="lazy">
+        <span class="tick tl"></span><span class="tick tr"></span><span class="tick bl"></span><span class="tick br"></span>
+        <span class="scale" aria-hidden="true"></span>
+      </div>
+      <div class="body">
+        <h3>${item.name}</h3>
+        <p class="desc">${item.desc}</p>
+        <dl class="specs">${item.specs.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
+        ${item.sizes.length ? `<div class="switch" data-role="sizes"><span class="lbl">Размер</span>${
+          item.sizes.map((s, i) => `<button type="button" data-size="${s}" aria-pressed="${i === 0}">${s}</button>`).join('')
+        }</div>` : ''}
+        <div class="buy">
+          <span class="price">${money(item.price)}<small>цена</small></span>
+          <button class="btn" type="button" data-role="add">Заказать</button>
+        </div>
+      </div>`;
+
+    chosen.set(index, item.sizes[0] || '');
+    module.querySelectorAll('[data-size]').forEach((button) => {
+      button.addEventListener('click', () => {
+        chosen.set(index, button.dataset.size);
+        module.querySelectorAll('[data-size]').forEach((other) =>
+          other.setAttribute('aria-pressed', String(other === button)));
+      });
+    });
+    module.querySelector('[data-role=add]').addEventListener('click', () => add(index));
+    grid.append(module);
+  });
+
+  const drawer = document.getElementById('drawer');
+  const list = document.getElementById('list');
+  const blank = document.getElementById('blank');
+  const blankText = document.getElementById('blankText');
+  const toggleBtn = document.getElementById('toggleBtn');
+
+  const total = () => cart.reduce((sum, line) => sum + ITEMS[line.index].price * line.qty, 0);
+
+  function blankMessage() {
+    const lines = cart.map((line, i) => {
+      const item = ITEMS[line.index];
+      const size = line.size ? ` / ${line.size}` : '';
+      return `${i + 1}. ${item.name}${size} — ${line.qty} × ${money(item.price)}`;
+    }).join('\n');
+    return ['ЗАКАЗ · ТАК И РАТ', '', lines, '', `Итого: ${money(total())}`,
+            'ПВЗ: ', 'Покупатель: '].join('\n');
+  }
+
+  function render() {
+    const count = cart.reduce((n, line) => n + line.qty, 0);
+    document.getElementById('accLabel').textContent =
+      `НАКОПИТЕЛЬ · ${count} ${count === 1 ? 'ПОЗИЦИЯ' : 'ПОЗИЦИЙ'} · ${money(total())}`;
+    toggleBtn.textContent = drawer.classList.contains('open') ? 'СВЕРНУТЬ' : 'РАЗВЕРНУТЬ';
+
+    list.innerHTML = cart.length
+      ? cart.map((line, i) => {
+          const item = ITEMS[line.index];
+          return `<div class="row"><span class="nm">${item.name}</span>${
+            line.size ? `<span class="sz">${line.size}</span>` : ''
+          }<span class="sum">${line.qty} × ${money(item.price)}</span>${
+            `<button class="btn" type="button" data-del="${i}" style="padding:4px 8px;margin-left:10px">✕</button>`
+          }</div>`;
+        }).join('')
+      : '<div class="empty">Пусто. Выберите объект в номенклатуре.</div>';
+
+    list.querySelectorAll('[data-del]').forEach((button) => {
+      button.addEventListener('click', () => {
+        cart.splice(Number(button.dataset.del), 1);
+        render();
+      });
+    });
+
+    blank.hidden = cart.length === 0;
+    if (cart.length) blankText.textContent = blankMessage();
+  }
+
+  function add(index) {
+    const size = chosen.get(index) || '';
+    const line = cart.find((l) => l.index === index && l.size === size);
+    if (line) line.qty += 1; else cart.push({ index, size, qty: 1 });
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden', 'false');
+    render();
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    const open = drawer.classList.toggle('open');
+    drawer.setAttribute('aria-hidden', String(!open));
+    render();
+  });
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    cart.length = 0;
+    drawer.classList.remove('open');
+    render();
+  });
+
+  render();
+</script>
+</body>
+</html>
