@@ -83,3 +83,30 @@ export const openOrderChat = (message: string): 'telegram' | 'browser' => {
   }
   return 'browser';
 };
+
+/**
+ * Пробует отправить заказ мастеру через свой сервер.
+ *
+ * Токен бота живёт в переменных окружения и в браузер не попадает: страница
+ * говорит со своим маршрутом `/api/order-notify`. Возвращает `false`, если
+ * маршрут не настроен или Telegram отказал — тогда заказ уходит обычным путём:
+ * покупатель открывает чат с ботом, где текст уже набран.
+ */
+export const sendOrderToServer = async (message: string): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/order-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: message }),
+    });
+    const answer: any = await response.json().catch(() => null);
+    if (!response.ok || !answer?.ok) {
+      console.warn('[ORDER_NOTIFY] сервер не отправил заказ:', answer?.reason || response.status);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.warn('[ORDER_NOTIFY] сервер недоступен:', error);
+    return false;
+  }
+};

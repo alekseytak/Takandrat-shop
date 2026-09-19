@@ -31,7 +31,9 @@ function getGeminiClient() {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  // Порт можно задать переменной: проверки поднимают свой магазин отдельно от
+  // рабочего, иначе они дерутся за один и тот же порт.
+  const PORT = Number(process.env.PORT) || 3000;
   const adminTelegramIds = new Set(
     (process.env.ADMIN_TELEGRAM_IDS || '').split(',').map(id => id.trim()).filter(Boolean)
   );
@@ -49,9 +51,23 @@ async function startServer() {
     });
   });
 
+
   app.use(cors());
   app.use(express.json({ limit: '15mb' }));
   app.use(express.urlencoded({ limit: '15mb', extended: true }));
+
+  // Заказ мастеру в Telegram. Токен — из переменных окружения, в браузер не
+  // попадает: страница зовёт этот маршрут, с Telegram говорит сервер.
+  app.post('/api/order-notify', async (req, res) => {
+    const { sendOrderToMaster, statusFor } = await import('./src/lib/orderNotify.ts');
+    const result = await sendOrderToMaster(String(req.body?.text || ''));
+    if (result.ok) {
+      res.json({ ok: true });
+      return;
+    }
+    console.warn('[ORDER_NOTIFY]', result.reason, result.detail || '');
+    res.status(statusFor(result.reason)).json({ ok: false, reason: result.reason });
+  });
 
   // API Routes
   app.post('/api/chat', async (req, res) => {

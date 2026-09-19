@@ -20,7 +20,8 @@
     "check:idempotency": "node supabase/functions/admin-ai/idempotency.test.ts",
     "check:rls": "node scripts/check-rls.mjs",
     "check:admin": "node supabase/functions/admin-ai/admin.test.ts",
-    "check:sync": "node scripts/check-catalog-sync.mjs"
+    "check:sync": "node scripts/check-catalog-sync.mjs",
+    "check:notify": "node scripts/check-notify.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.9.0",
