@@ -19,7 +19,8 @@
     "check:telegram": "node supabase/functions/admin-ai/telegram.test.ts",
     "check:idempotency": "node supabase/functions/admin-ai/idempotency.test.ts",
     "check:rls": "node scripts/check-rls.mjs",
-    "check:admin": "node supabase/functions/admin-ai/admin.test.ts"
+    "check:admin": "node supabase/functions/admin-ai/admin.test.ts",
+    "check:sync": "node scripts/check-catalog-sync.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.9.0",
