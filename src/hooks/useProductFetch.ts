@@ -50,6 +50,9 @@ const fromDatabase = (row: Record<string, unknown>): Product => ({
     : row.image_url
       ? [String(row.image_url)]
       : [],
+  sizes: Array.isArray(row.sizes)
+    ? (row.sizes as unknown[]).map((item) => String(item)).filter((item) => item.length > 0)
+    : [],
   category: categoryOf(row.category),
   features: Array.isArray(row.features) ? (row.features as string[]) : [],
 });

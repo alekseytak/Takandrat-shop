@@ -6,6 +6,8 @@ export type Product = {
   price: number;
   description: string;
   images: string[];
+  /** Подписи размеров этой вещи. Пусто — у вещи размера нет. */
+  sizes?: string[];
   // Added 'apparel' to the category union to fix type comparison errors in components/Store/ProductGrid.tsx
   category: 'longsleeve' | 'accessories' | 'gear' | 'apparel';
   features: string[];

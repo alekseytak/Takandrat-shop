@@ -94,12 +94,18 @@ export const ProductGrid: React.FC = () => {
 };
 
 const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ product, viewMode }) => {
+  // Размеры принадлежат вещи: у ремня это S–XL по цифре W на джинсах, у
+  // контейнера размера нет вовсе. Общий список SIZES остался запасным путём
+  // для товара, у которого размеры не заданы.
+  const sizes = product.sizes ?? SIZES;
+  const hasSizes = sizes.length > 0;  // пусто — у вещи размера нет
   const [selectedSize, setSelectedSize] = useState(SIZES[1]);
+  const activeSize = sizes.includes(selectedSize) ? selectedSize : sizes[0] ?? '';
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const { addItemToCart } = useCartManagement();
 
   const handleAddToCart = () => {
-    const sizeToAdd = (product.category === 'gear' || product.category === 'accessories') ? 'ЕДИНЫЙ РАЗМЕР' : selectedSize;
+    const sizeToAdd = hasSizes ? activeSize : 'ЕДИНЫЙ РАЗМЕР';
     addItemToCart(product, sizeToAdd);
   };
 
@@ -153,14 +159,14 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between mt-4">
-             {!isGear && (
+             {hasSizes && (
                 <div className="flex gap-2">
-                  {SIZES.map((size: string) => (
+                  {sizes.map((size: string) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
                       className={`w-10 h-10 text-[10px] font-bold border-2 transition-all ${
-                        selectedSize === size 
+                        activeSize === size 
                         ? 'bg-brand-text text-brand-bg border-brand-text' 
                         : 'border-brand-text hover:bg-brand-text/10 bg-brand-bg/40'
                       }`}
@@ -229,14 +235,14 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
       </div>
 
       <div className="mt-auto">
-        {!isGear && (
+        {hasSizes && (
             <div className="flex gap-1 md:gap-2 mb-2 md:mb-4">
-                {SIZES.map((size: string) => (
+                {sizes.map((size: string) => (
                 <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
                     className={`flex-1 py-1 md:py-2 text-[9px] md:text-[10px] font-bold border-2 transition-all ${
-                    selectedSize === size 
+                    activeSize === size 
                     ? 'bg-brand-text text-brand-bg border-brand-text md:brutalist-shadow-sm' 
                     : 'border-brand-text hover:bg-brand-bg/80 bg-brand-bg/40'
                     }`}
