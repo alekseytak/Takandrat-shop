@@ -206,7 +206,9 @@ try {
   check('на оформлении видно, что именно заказывают',
     expected.names.some((n) => contains(checkout.toUpperCase(), n)), 'состав заказа не показан');
 
-  // 5. Отправка при недоступном сервере: понятная причина и целая корзина.
+  // 5. Отправка заказа: он уходит мастеру сообщением в Telegram, поэтому на
+  // экране появляется собранный заказ, а корзина остаётся целой — покупатель
+  // ещё не отправил сообщение.
   await evaluate(`(() => {
     const input = document.querySelector('input[name=address]');
     input.value = 'СДЭК, Санкт-Петербург, тестовый адрес';
@@ -215,17 +217,19 @@ try {
     button.click();
     return true;
   })()`);
-  const errorShown = await waitFor(
-    `!!document.querySelector('[role=alert]')`, 'сообщение об ошибке', 45000);
-  check('покупатель видит сообщение об ошибке', errorShown);
-  const alertText = await evaluate(`document.querySelector('[role=alert]')?.innerText || ''`);
-  check('сообщение написано по-русски и без кодов',
-    alertText.length > 10 && !/REJECTED|FUNCTION_|COMM_LINK|undefined/.test(alertText), alertText);
-  const afterFailure = await text();
+  const draftShown = await waitFor(
+    `!!document.querySelector('[data-testid=order-draft]')`, 'собранный заказ', 45000);
+  check('покупатель видит собранный заказ', draftShown);
+  const draftText = await evaluate(`document.querySelector('[data-testid=order-draft]')?.innerText || ''`);
+  check('в заказе есть состав, итог и адрес ПВЗ',
+    expected.names.some((n) => draftText.toUpperCase().includes(n))
+      && /СДЭК/.test(draftText) && /Итого:/.test(draftText),
+    draftText.slice(0, 140));
+  const afterSend = await text();
   check('покупатель остался на оформлении, а не выброшен на витрину',
-    contains(afterFailure, 'ОФОРМЛЕНИЕ ЗАКАЗА'));
+    contains(afterSend, 'ОФОРМЛЕНИЕ ЗАКАЗА'));
 
-  // Заказ не подтверждён — значит корзина должна остаться на месте.
+  // Сообщение ещё не отправлено — значит корзина должна остаться на месте.
   await evaluate(`(() => {
     const button = [...document.querySelectorAll('button')].find((b) => b.className.includes('relative group p-1'));
     button?.click();
@@ -233,8 +237,8 @@ try {
   })()`);
   const cartKept = await waitFor(
     `${JSON.stringify(expected.names)}.some((n) => (document.body?.innerText || '').toUpperCase().includes(n))`,
-    'товар в корзине после отказа', 8000);
-  check('после отказа корзина не очищена', cartKept, 'товар пропал из корзины');
+    'товар в корзине до отправки', 8000);
+  check('до отправки заказа корзина не очищена', cartKept, 'товар пропал из корзины');
 
   // Стили. Раньше Tailwind приезжал скриптом с CDN и собирал классы из живой
   // страницы, поэтому любой класс, собранный в рантайме, работал. Сборка так
