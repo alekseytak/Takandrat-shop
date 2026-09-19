@@ -16,8 +16,13 @@ export type NotifyResult =
   | { ok: true }
   | { ok: false; reason: NotifyReason; detail?: string };
 
+/** Токен бота выглядит как «123456789:AA…». Проверяем вид до звонка в Telegram:
+ *  иначе неверно вставленный ключ превращается в невнятное «Not Found». */
+const looksLikeBotToken = (token: string): boolean => /^\d{6,}:[A-Za-z0-9_-]{25,}$/.test(token);
+
 export type NotifyReason =
   | 'NO_BOT_TOKEN'
+  | 'BOT_TOKEN_MALFORMED'
   | 'NO_ADMIN_CHAT'
   | 'EMPTY_ORDER'
   | 'ORDER_TOO_LONG'
@@ -48,6 +53,7 @@ export const notifyReady = (): { ready: boolean; reason?: NotifyReason } => {
 export const sendOrderToMaster = async (text: string): Promise<NotifyResult> => {
   const { token, chatId } = config();
   if (!token) return { ok: false, reason: 'NO_BOT_TOKEN' };
+  if (!looksLikeBotToken(token)) return { ok: false, reason: 'BOT_TOKEN_MALFORMED' };
   if (!chatId) return { ok: false, reason: 'NO_ADMIN_CHAT' };
 
   const order = String(text || '').trim();
@@ -75,7 +81,7 @@ export const sendOrderToMaster = async (text: string): Promise<NotifyResult> => 
 /** Код ответа для маршрута: покупателю важно, ждать ему подтверждения или нет. */
 export const statusFor = (reason?: NotifyReason): number => {
   if (!reason) return 200;
-  if (reason === 'NO_BOT_TOKEN' || reason === 'NO_ADMIN_CHAT') return 503;
+  if (reason === 'NO_BOT_TOKEN' || reason === 'NO_ADMIN_CHAT' || reason === 'BOT_TOKEN_MALFORMED') return 503;
   if (reason === 'EMPTY_ORDER' || reason === 'ORDER_TOO_LONG') return 400;
   return 502;
 };

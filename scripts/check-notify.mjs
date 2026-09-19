@@ -60,7 +60,7 @@ await withServer({ TELEGRAM_BOT_TOKEN: '', TELEGRAM_ADMIN_CHAT_ID: '' }, async (
 });
 
 // 2. Токен неверный: маршрут обязан дойти до Telegram и передать его отказ.
-await withServer({ TELEGRAM_BOT_TOKEN: '123456:тест-неверный-токен', TELEGRAM_ADMIN_CHAT_ID: '1' }, async () => {
+await withServer({ TELEGRAM_BOT_TOKEN: '123456789:AAFakeFakeFakeFakeFakeFakeFakeFakeFake', TELEGRAM_ADMIN_CHAT_ID: '1' }, async () => {
   const answer = await post('ЗАКАЗ · проверка');
   const body = await answer.json().catch(() => ({}));
   check('с неверным токеном Telegram отвечает отказом', answer.status === 502, `код ${answer.status}`);
@@ -68,15 +68,23 @@ await withServer({ TELEGRAM_BOT_TOKEN: '123456:тест-неверный-ток�
     body.reason === 'TELEGRAM_REJECTED', `reason: ${body.reason || 'нет'}`);
 });
 
-// 3. Пустой заказ не отправляется вовсе.
-await withServer({ TELEGRAM_BOT_TOKEN: '123456:тест-неверный-токен', TELEGRAM_ADMIN_CHAT_ID: '1' }, async () => {
+// 3. Токен не похож на токен: называем это прямо, не тревожа Telegram.
+await withServer({ TELEGRAM_BOT_TOKEN: 'ключ-от-другого-сервиса', TELEGRAM_ADMIN_CHAT_ID: '1' }, async () => {
+  const answer = await post('ЗАКАЗ · проверка');
+  const body = await answer.json().catch(() => ({}));
+  check('токен не того вида назван токеном не того вида',
+    answer.status === 503 && body.reason === 'BOT_TOKEN_MALFORMED', `код ${answer.status}, reason ${body.reason || 'нет'}`);
+});
+
+// 4. Пустой заказ не отправляется вовсе.
+await withServer({ TELEGRAM_BOT_TOKEN: '123456789:AAFakeFakeFakeFakeFakeFakeFakeFakeFake', TELEGRAM_ADMIN_CHAT_ID: '1' }, async () => {
   const answer = await post('   ');
   const body = await answer.json().catch(() => ({}));
   check('пустой заказ не уходит', answer.status === 400 && body.reason === 'EMPTY_ORDER',
     `код ${answer.status}, reason ${body.reason || 'нет'}`);
 });
 
-// 4. Обработчик Vercel: тот же отказ без токена. Импорт ловит поломку вида
+// 5. Обработчик Vercel: тот же отказ без токена. Импорт ловит поломку вида
 //    «относительный импорт без расширения» — на боевом рантайме Vercel функция
 //    из-за неё не загружалась вовсе (FUNCTION_INVOCATION_FAILED), а локальный
 //    Express при этом работал и ничего не подозревал.

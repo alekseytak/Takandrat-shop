@@ -17,8 +17,13 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 /** Длина сообщения в Telegram — 4096 знаков. Держим запас. */
 const MAX_ORDER_LENGTH = 3500;
 
+/** Токен бота выглядит как «123456789:AA…». Проверяем вид до звонка в Telegram:
+ *  иначе неверно вставленный ключ превращается в невнятное «Not Found». */
+const looksLikeBotToken = (token: string): boolean => /^\d{6,}:[A-Za-z0-9_-]{25,}$/.test(token);
+
 type NotifyReason =
   | 'NO_BOT_TOKEN'
+  | 'BOT_TOKEN_MALFORMED'
   | 'NO_ADMIN_CHAT'
   | 'EMPTY_ORDER'
   | 'ORDER_TOO_LONG'
@@ -27,7 +32,7 @@ type NotifyReason =
 
 /** Код ответа: покупателю важно, ждать ему подтверждения или нет. */
 const statusFor = (reason: NotifyReason): number => {
-  if (reason === 'NO_BOT_TOKEN' || reason === 'NO_ADMIN_CHAT') return 503;
+  if (reason === 'NO_BOT_TOKEN' || reason === 'NO_ADMIN_CHAT' || reason === 'BOT_TOKEN_MALFORMED') return 503;
   if (reason === 'EMPTY_ORDER' || reason === 'ORDER_TOO_LONG') return 400;
   return 502;
 };
@@ -57,6 +62,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
   };
 
   if (!token) return refuse('NO_BOT_TOKEN');
+  if (!looksLikeBotToken(token)) return refuse('BOT_TOKEN_MALFORMED');
   if (!chatId) return refuse('NO_ADMIN_CHAT');
   if (!order) return refuse('EMPTY_ORDER');
   if (order.length > MAX_ORDER_LENGTH) return refuse('ORDER_TOO_LONG');
