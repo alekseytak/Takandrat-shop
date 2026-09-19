@@ -39,7 +39,9 @@ if (!response.ok) {
 const rows = await response.json();
 
 const source = readFileSync('src/constants.ts', 'utf8');
-const unquote = (raw) => raw.replace(/\\'/g, "'").replace(/\\\\/g, '\\');
+// Раскодировать escape-последовательности строки в коде: \n, \' и \\.
+// Без этого многострочное описание в файле не совпадёт с текстом из базы.
+const unquote = (raw) => raw.replace(/\\(.)/g, (_, ch) => (ch === 'n' ? '\n' : ch === 't' ? '\t' : ch));
 const names = [...source.matchAll(/name: '((?:[^'\\]|\\.)*)'/g)].map((m) => unquote(m[1]));
 const prices = [...source.matchAll(/price: (\d+)/g)].map((m) => Number(m[1]));
 const descriptions = [...source.matchAll(/description: '((?:[^'\\]|\\.)*)'/g)].map((m) => unquote(m[1]));
