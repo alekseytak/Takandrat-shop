@@ -50,7 +50,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
   // Причина отказа возвращается словами, токен — никогда.
   const refuse = (reason: NotifyReason, detail = '') => {
     console.warn('[ORDER_NOTIFY]', reason, detail);
-    response.status(statusFor(reason)).json({ ok: false, reason });
+    // Отказ Telegram отдаём словами: «chat not found», «bot can't initiate
+    // conversation» — это подсказка владельцу, что чинить, и токена в этих
+    // словах нет.
+    response.status(statusFor(reason)).json({ ok: false, reason, detail: detail || undefined });
   };
 
   if (!token) return refuse('NO_BOT_TOKEN');

@@ -66,7 +66,7 @@ async function startServer() {
       return;
     }
     console.warn('[ORDER_NOTIFY]', result.reason, result.detail || '');
-    res.status(statusFor(result.reason)).json({ ok: false, reason: result.reason });
+    res.status(statusFor(result.reason)).json({ ok: false, reason: result.reason, detail: result.detail });
   });
 
   // API Routes
