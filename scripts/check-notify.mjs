@@ -76,5 +76,28 @@ await withServer({ TELEGRAM_BOT_TOKEN: '123456:тест-неверный-ток�
     `код ${answer.status}, reason ${body.reason || 'нет'}`);
 });
 
+// 4. Обработчик Vercel: тот же отказ без токена. Импорт ловит поломку вида
+//    «относительный импорт без расширения» — на боевом рантайме Vercel функция
+//    из-за неё не загружалась вовсе (FUNCTION_INVOCATION_FAILED), а локальный
+//    Express при этом работал и ничего не подозревал.
+try {
+  const { default: vercelHandler } = await import('../api/order-notify.ts');
+  const answer = await new Promise((resolve) => {
+    const response = {
+      code: 0,
+      setHeader() {},
+      status(code) { this.code = code; return this; },
+      json(body) { resolve({ code: this.code, body }); },
+    };
+    vercelHandler({ method: 'POST', body: { text: 'ЗАКАЗ · проверка' } }, response);
+  });
+  check('обработчик Vercel загружается и отказывает без токена',
+    answer.code === 503 && answer.body?.reason === 'NO_BOT_TOKEN',
+    `код ${answer.code}, reason ${answer.body?.reason || 'нет'}`);
+} catch (error) {
+  check('обработчик Vercel загружается и отказывает без токена', false,
+    String(error?.message || error));
+}
+
 console.log(failed ? `\nПровалов: ${failed}` : '\nОтправка заказа мастеру: маршрут ведёт себя верно.');
 process.exit(failed ? 1 : 0);
