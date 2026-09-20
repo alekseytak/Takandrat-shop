@@ -216,3 +216,14 @@
 - Водяной знак на фото отключён; изображения в `public/image.jpeg` нет.
 - Мажорные обновления (React 19, Vite 7, Tailwind 4) не делались.
 - Идемпотентность заказа и RLS проверены только на уровне кода, без живой базы.
+
+## 2025-09-19 — Gemini выпилен, OpenRouter + LiteRouter
+Что сделано: `@google/genai` удалён из зависимостей и всего кода (`server.ts`,
+Vercel-функции `api/*`, Edge Function `admin-ai`). Текст генерируют
+OpenRouter (первым) и LiteRouter (запасным) через общий OpenAI-совместимый слой
+`src/lib/llm.ts` (+ копия `api/_lib/llm.ts` для Vercel). LiteRouter-ключ в
+`~/.takandrat/literouter-api-key` (600), бесплатные модели с суффиксом `:free`.
+Наработки из `.kilo/worktrees/grizzled-ringer` (Vercel-функции, `.githooks`,
+`SECURITY.md`) перенесены в основной проект с выравниванием под фронт.
+Сработало: пробный вызов LiteRouter вернул ответ (`deepseek-v3.1:free`).
+Важно: `tools/factory.ts` шлюза oneprovider Google SDK не использовал — не трогался.

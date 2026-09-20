@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Security pre-commit hook to prevent committing secrets
+# Patterns for common secret formats
+
+# OpenRouter keys: sk-or-v1-[a-f0-9]{20,}
+if echo "$*" | grep -q -E "sk-or-v1-[a-f0-9]{20,}"; then
+    echo "SECRET DETECTED — refusing to commit: OpenRouter key"
+    exit 1
+fi
+
+# JWT tokens: eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}
+if echo "$*" | grep -q -E "eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}"; then
+    echo "SECRET DETECTED — refusing to commit: JWT token"
+    exit 1
+fi
+
+# Google AI Studio keys: AIza[A-Za-z0-9_-]{30,}
+if echo "$*" | grep -q -E "AIza[A-Za-z0-9_-]{30,}"; then
+    echo "SECRET DETECTED — refusing to commit: Google AI Studio key"
+    exit 1
+fi
+
+# AWS access keys: AKIA[0-9A-Z]{16}
+if echo "$*" | grep -q -E "AKIA[0-9A-Z]{16}"; then
+    echo "SECRET DETECTED — refusing to commit: AWS access key"
+    exit 1
+fi
+
+# GitHub tokens: ghp_[A-Za-z0-9]{30,}
+if echo "$*" | grep -q -E "ghp_[A-Za-z0-9]{30,}"; then
+    echo "SECRET DETECTED — refusing to commit: GitHub token"
+    exit 1
+fi
+
+echo "Security check passed"

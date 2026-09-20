@@ -6,28 +6,9 @@ import path from "path";
 // угадывает расширения, в отличие от tsx и vite. Без ".ts" команда npm start
 // падала с ERR_MODULE_NOT_FOUND.
 import { supabase } from "./src/lib/supabase.ts";
-import { GoogleGenAI } from "@google/genai";
+import { bestEffort, type ChatMessage, type ToolDef } from "./src/lib/llm.ts";
 
 dotenv.config();
-
-let aiClient: any = null;
-function getGeminiClient() {
-  if (!aiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY environment variable is required');
-    }
-    aiClient = new GoogleGenAI({
-      apiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
-    });
-  }
-  return aiClient;
-}
 
 async function startServer() {
   const app = express();
@@ -107,143 +88,36 @@ ${inventory}
       b: 0.8 + Math.random() * 0.15
     };
 
-    // 1. ПРИОРИТЕТ: ВЫЗОВ OPENROUTER (по запросу пользователя)
-    const openrouterKey = process.env.OPENROUTER_API_KEY;
-    const openRouterModels = [
-      'meta-llama/llama-3.1-8b-instruct:free',
-      'meta-llama/llama-3-8b-instruct:free',
-      'qwen/qwen-2.5-7b-instruct:free',
-      'google/gemma-2-9b-it:free',
-      'mistralai/mistral-7b-instruct:free'
-    ];
+    // OpenAI-совместимые провайдеры: OpenRouter первым, LiteRouter запасным.
+    // Google GenAI / Gemini выпилен — см. src/lib/llm.ts.
+    try {
+      const finalMessageContent = attachments?.length
+        ? [
+            message,
+            '\n\n[Приложенные клиентом файлы/эскизы]:',
+            ...attachments.map((att: any) =>
+              att.mimeType && att.mimeType.startsWith('image/')
+                ? `\n- [Изображение/Эскиз: ${att.name}]`
+                : `\n- [Текстовый файл: ${att.name}]\nСодержимое:\n${att.text || (att.data ? Buffer.from(att.data, 'base64').toString('utf-8') : '')}`,
+            ),
+          ].join('')
+        : message;
 
-    let lastOpenRouterError: any = null;
+      const messages: ChatMessage[] = [
+        { role: 'system', content: systemPrompt },
+        ...(history || []).map((h: any) => ({
+          role: h.role === 'model' || h.role === 'assistant' ? 'assistant' : 'user',
+          content: h.content,
+        })),
+        { role: 'user', content: finalMessageContent },
+      ];
 
-    if (openrouterKey) {
-      for (const orModel of openRouterModels) {
-        try {
-          console.log(`[AI_CHAT_USER] Инициализация вызова OpenRouter API (${orModel})...`);
-          
-          // Преобразуем вложения в текстовый формат для OpenRouter, если они есть
-          let finalMessageContent = message;
-          if (attachments && attachments.length > 0) {
-            finalMessageContent += '\n\n[Приложенные клиентом файлы/эскизы]:';
-            for (const att of attachments) {
-              if (att.mimeType && att.mimeType.startsWith('image/')) {
-                finalMessageContent += `\n- [Изображение/Эскиз: ${att.name}]`;
-              } else {
-                finalMessageContent += `\n- [Текстовый файл: ${att.name}]\nСодержимое:\n${att.text || (att.data ? Buffer.from(att.data, 'base64').toString('utf-8') : '')}`;
-              }
-            }
-          }
-
-          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${openrouterKey}`,
-              'HTTP-Referer': process.env.FRONTEND_URL || 'http://localhost:3000',
-              'X-Title': 'Tak and Rat Shop Assistant',
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: orModel,
-              messages: [
-                { role: 'system', content: systemPrompt },
-                ...(history || []).map((h: any) => ({
-                  role: h.role === 'model' || h.role === 'assistant' ? 'assistant' : 'user',
-                  content: h.content
-                })),
-                { role: 'user', content: finalMessageContent }
-              ],
-            }),
-          });
-
-          if (!response.ok) {
-            let errorMessage = `HTTP ${response.status}`;
-            try {
-              const errorData = await response.json();
-              if (errorData.error && errorData.error.message) {
-                errorMessage = errorData.error.message;
-              } else {
-                errorMessage = JSON.stringify(errorData);
-              }
-            } catch (e) {
-              errorMessage = await response.text();
-            }
-            throw new Error(errorMessage);
-          }
-
-          const data = await response.json();
-          const reply = data.choices?.[0]?.message?.content || "COMM_LINK_ERROR";
-          return res.json({ reply, metrics });
-        } catch (orError: any) {
-          lastOpenRouterError = orError;
-          console.warn(`[AI_CHAT_USER] Ошибка OpenRouter для модели ${orModel}: ${orError.message || orError}. Пробуем следующую...`);
-        }
-      }
-      console.warn("[AI_CHAT_USER] Все модели OpenRouter не ответили. Переход к резервному Gemini...");
+      const { content } = await bestEffort({ messages, log: 'AI_CHAT_USER' });
+      res.json({ reply: content || 'COMM_LINK_ERROR', metrics });
+    } catch (error: any) {
+      console.error('[AI_CHAT_USER]', error?.message || error);
+      res.status(500).json({ error: error?.message || 'Все LLM-провайдеры недоступны.' });
     }
-
-    // 2. РЕЗЕРВНЫЙ ВАРИАНТ (FALLBACK): ОФИЦИАЛЬНЫЙ GOOGLE GEMINI API
-    const geminiKey = process.env.GEMINI_API_KEY;
-    if (geminiKey) {
-      const geminiModels = ['gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
-      let lastGeminiError: any = null;
-
-      for (const geminiModel of geminiModels) {
-        try {
-          console.log(`[AI_CHAT_USER] Резервный вызов Google Gemini API (${geminiModel})...`);
-          const ai = getGeminiClient();
-          
-          const mappedContents = (history || []).map((h: any) => ({
-            role: h.role === 'assistant' || h.role === 'model' ? 'model' : 'user',
-            parts: [{ text: h.content }]
-          }));
-          
-          const latestParts: any[] = [{ text: message }];
-
-          if (attachments && attachments.length > 0) {
-            for (const att of attachments) {
-              if (att.mimeType && att.mimeType.startsWith('image/')) {
-                latestParts.push({
-                  inlineData: {
-                    data: att.data,
-                    mimeType: att.mimeType
-                  }
-                });
-              } else {
-                latestParts.push({
-                  text: `\n[Прикрепленный файл: ${att.name}]\nСодержимое:\n${att.text || (att.data ? Buffer.from(att.data, 'base64').toString('utf-8') : '')}`
-                });
-              }
-            }
-          }
-
-          mappedContents.push({
-            role: 'user',
-            parts: latestParts
-          });
-
-          const response = await ai.models.generateContent({
-            model: geminiModel,
-            contents: mappedContents,
-            config: {
-              systemInstruction: systemPrompt,
-              temperature: 0.7,
-            }
-          });
-
-          const reply = response.text || "COMM_LINK_ERROR";
-          return res.json({ reply, metrics });
-        } catch (geminiError: any) {
-          lastGeminiError = geminiError;
-          console.warn(`[AI_CHAT_USER] Ошибка Gemini API: ${geminiError.message || geminiError}. Пробуем следующую модель...`);
-        }
-      }
-      return res.status(500).json({ error: `Все провайдеры ИИ исчерпали лимиты. Последняя ошибка OpenRouter: ${lastOpenRouterError?.message || lastOpenRouterError}. Последняя ошибка Gemini: ${lastGeminiError?.message || lastGeminiError}` });
-    }
-
-    res.status(500).json({ error: 'Идентификационные ключи OPENROUTER_API_KEY и GEMINI_API_KEY отсутствуют или некорректны.' });
   });
 
   app.post('/api/admin/chat', async (req, res) => {
@@ -271,243 +145,178 @@ ${inventory}
 
 ПОСЛЕ выполнения любой функции всегда отчитывайся об успешности проведения транзакции и выводи финальный результат понятным образом.`;
 
-    const toolsList = [
+    const toolsList: ToolDef[] = [
       {
-        name: 'list_products',
-        description: 'Получает полный список товаров из базы данных. Используется для инспекции склада или поиска ID товаров.',
-        parameters: {
-          type: 'OBJECT',
-          properties: {}
-        }
+        type: 'function',
+        function: {
+          name: 'list_products',
+          description: 'Получает полный список товаров из базы данных. Используется для инспекции склада или поиска ID товаров.',
+          parameters: { type: 'object', properties: {} },
+        },
       },
       {
-        name: 'add_product',
-        description: 'Создает новую карточку кожаного изделия в базе данных.',
-        parameters: {
-          type: 'OBJECT',
-          properties: {
-            name: { type: 'STRING', description: 'Название товара (например: "Ремень латунный Brutal")' },
-            price: { type: 'NUMBER', description: 'Цена товара в рублях (целое число, напр: 3900)' },
-            description: { type: 'STRING', description: 'cyberpunk/minimalist сочное описание' },
-            category: { type: 'STRING', description: 'Категория изделия (accessories, clothing, custom)' },
-            stock_quantity: { type: 'NUMBER', description: 'Запас на складе (по умолчанию 10)' },
-            image_url: { type: 'STRING', description: 'Ссылка на изображение. По умолчанию можно использовать качественный плейсхолдер.' }
+        type: 'function',
+        function: {
+          name: 'add_product',
+          description: 'Создает новую карточку кожаного изделия в базе данных.',
+          parameters: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Название товара' },
+              price: { type: 'number', description: 'Цена товара в рублях (целое число)' },
+              description: { type: 'string', description: 'Описание товара' },
+              category: { type: 'string', description: 'Категория изделия (accessories, clothing, custom)' },
+              stock_quantity: { type: 'number', description: 'Запас на складе (по умолчанию 10)' },
+              image_url: { type: 'string', description: 'Ссылка на изображение' },
+            },
+            required: ['name', 'price', 'description', 'category'],
           },
-          required: ['name', 'price', 'description', 'category']
-        }
+        },
       },
       {
-        name: 'update_product',
-        description: 'Обновляет مشخصные поля существующего кожаного изделия по его ID.',
-        parameters: {
-          type: 'OBJECT',
-          properties: {
-            id: { type: 'NUMBER', description: 'Уникальный ID товара в базе данных Supabase' },
-            name: { type: 'STRING', description: 'Новое имя товара' },
-            price: { type: 'NUMBER', description: 'Новая цена в рублях' },
-            description: { type: 'STRING', description: 'Новое описание' },
-            category: { type: 'STRING', description: 'Новая категория' },
-            stock_quantity: { type: 'NUMBER', description: 'Новый объем остатков' },
-            image_url: { type: 'STRING', description: 'Новая ссылка на фото' }
+        type: 'function',
+        function: {
+          name: 'update_product',
+          description: 'Обновляет отдельные поля существующего товара по его ID.',
+          parameters: {
+            type: 'object',
+            properties: {
+              id: { type: 'number', description: 'Уникальный ID товара' },
+              name: { type: 'string' },
+              price: { type: 'number' },
+              description: { type: 'string' },
+              category: { type: 'string' },
+              stock_quantity: { type: 'number' },
+              image_url: { type: 'string' },
+            },
+            required: ['id'],
           },
-          required: ['id']
-        }
+        },
       },
       {
-        name: 'delete_product',
-        description: 'Навсегда удаляет товар по его числовому ID из базы данных.',
-        parameters: {
-          type: 'OBJECT',
-          properties: {
-            id: { type: 'NUMBER', description: 'ID товара для удаления' }
+        type: 'function',
+        function: {
+          name: 'delete_product',
+          description: 'Навсегда удаляет товар по его числовому ID из базы данных.',
+          parameters: {
+            type: 'object',
+            properties: { id: { type: 'number', description: 'ID товара для удаления' } },
+            required: ['id'],
           },
-          required: ['id']
-        }
+        },
       },
       {
-        name: 'generate_product_description',
-        description: 'Генерирует невероятно атмосферный, продающий брутальный текст описания товара.',
-        parameters: {
-          type: 'OBJECT',
-          properties: {
-            name: { type: 'STRING', description: 'Название аксессуара' },
-            category: { type: 'STRING', description: 'Категория товара' },
-            key_features: { type: 'STRING', description: 'Ключевые фичи (материалы, швы, урезы, латунь)' }
+        type: 'function',
+        function: {
+          name: 'generate_product_description',
+          description: 'Генерирует атмосферный, продающий брутальный текст описания товара.',
+          parameters: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Название аксессуара' },
+              category: { type: 'string', description: 'Категория товара' },
+              key_features: { type: 'string', description: 'Ключевые фичи (материалы, швы, урезы, латунь)' },
+            },
+            required: ['name', 'category'],
           },
-          required: ['name', 'category']
-        }
-      }
+        },
+      },
     ];
 
     try {
-      console.log(`[ADMIN AI AGENT] Получен запрос от админа...`);
-      const ai = getGeminiClient();
+      const finalMessageContent = attachments?.length
+        ? [
+            message,
+            '\n\n[Приложенные клиентом файлы]:',
+            ...attachments.map((att: any) =>
+              att.mimeType && att.mimeType.startsWith('image/')
+                ? `\n- [Изображение/Эскиз: ${att.name}]`
+                : `\n- [Текстовый файл: ${att.name}]\nСодержимое:\n${att.text || (att.data ? Buffer.from(att.data, 'base64').toString('utf-8') : '')}`,
+            ),
+          ].join('')
+        : message;
 
-      // Маппим историю во внутренний формат Gemini
-      const mappedContents: any[] = (history || []).map((h: any) => ({
-        role: h.role === 'assistant' || h.role === 'model' ? 'model' : 'user',
-        parts: [{ text: h.content }]
-      }));
-
-      const latestParts: any[] = [{ text: message }];
-
-      if (attachments && attachments.length > 0) {
-        for (const att of attachments) {
-          if (att.mimeType && att.mimeType.startsWith('image/')) {
-            latestParts.push({
-              inlineData: {
-                data: att.data,
-                mimeType: att.mimeType
-              }
-            });
-          } else {
-            latestParts.push({
-              text: `\n[Прикрепленный файл: ${att.name}]\nСодержимое:\n${att.text || (att.data ? Buffer.from(att.data, 'base64').toString('utf-8') : '')}`
-            });
-          }
-        }
-      }
-
-      mappedContents.push({
-        role: 'user',
-        parts: latestParts
-      });
-
-      const adminModels = [
-        'gemini-3.5-flash',
-        'gemini-flash-latest',
-        'gemini-3.1-flash-lite'
+      const messages: ChatMessage[] = [
+        { role: 'system', content: systemPrompt },
+        ...(history || []).map((h: any) => ({
+          role: h.role === 'model' || h.role === 'assistant' ? 'assistant' : 'user',
+          content: h.content,
+        })),
+        { role: 'user', content: finalMessageContent },
       ];
 
-      async function executeWithFallback(contents: any[], config: any) {
-        let lastError: any = null;
-        for (const modelName of adminModels) {
-          try {
-            console.log(`[ADMIN AI AGENT] Попытка генерации через модель: ${modelName}`);
-            const res = await ai.models.generateContent({
-              model: modelName,
-              contents,
-              config
-            });
-            return { response: res, activeModel: modelName };
-          } catch (err: any) {
-            lastError = err;
-            console.warn(`[ADMIN AI AGENT] Ошибка модели ${modelName}: ${err.message || err}. Пробуем следующую...`);
-          }
+      async function runTool(name: string, args: any): Promise<any> {
+        if (name === 'list_products') {
+          const { data, error } = await supabase.from('products').select('*').order('id', { ascending: true });
+          return error ? { error: error.message } : { products: data };
         }
-        throw new Error(`Все модели Gemini в панели администратора израсходовали лимиты или недоступны. Последняя ошибка: ${lastError?.message || lastError}`);
-      }
-
-      let { response, activeModel } = await executeWithFallback(mappedContents, {
-        systemInstruction: systemPrompt,
-        tools: [{ functionDeclarations: toolsList }],
-        temperature: 0.7
-      });
-
-      let loopCounter = 0;
-      let functionCalls = response.functionCalls;
-
-      while (functionCalls && functionCalls.length > 0 && loopCounter < 5) {
-        loopCounter++;
-        console.log(`[ADMIN AI AGENT] Итерация ${loopCounter}. Инструменты для вызова:`, JSON.stringify(functionCalls));
-        const toolResults: any[] = [];
-
-        for (const call of functionCalls) {
-          const { name, args } = call;
-          let result: any = {};
-
-          try {
-            if (name === 'list_products') {
-              const { data, error } = await supabase.from('products').select('*').order('id', { ascending: true });
-              result = error ? { error: error.message } : { products: data };
-            } else if (name === 'add_product') {
-              const { data, error } = await supabase.from('products').insert([{
-                name: args.name,
-                price: args.price,
-                description: args.description,
-                category: args.category || 'accessories',
-                stock_quantity: args.stock_quantity || 10,
-                image_url: args.image_url || 'https://images.unsplash.com/photo-1547996160-81dfa63595aa',
-                is_visible: true
-              }]).select();
-              result = error ? { error: error.message } : { success: true, product: data[0] };
-            } else if (name === 'update_product') {
-              const { id, ...fields } = args;
-              const { data, error } = await supabase.from('products').update(fields).eq('id', id).select();
-              result = error ? { error: error.message } : { success: true, product: data[0] };
-            } else if (name === 'delete_product') {
-              const { id } = args;
-              const { error } = await supabase.from('products').delete().eq('id', id);
-              result = error ? { error: error.message } : { success: true };
-            } else if (name === 'generate_product_description') {
-              const descPrompt = `Напиши брутальное, цепляющее описание в стиле киберпанк для кожаного товара.
-              Название товара: ${args.name}
-              Категория: ${args.category}
-              Материалы / фичи: ${args.key_features || 'Премиальная натуральная кожа КРС, латунная прочная фурнитура, ручная обработка краев'}`;
-              
-              let descResponse;
-              try {
-                descResponse = await ai.models.generateContent({
-                  model: activeModel,
-                  contents: descPrompt,
-                  config: {
-                    systemInstruction: 'Ты ИИ-копирайтер брутального ателье кожи "Tak and Rat". Текст должен быть коротким (до 250 символов), харизматичным, без клише, подчеркивать честность материалов.',
-                    temperature: 0.8
-                  }
-                });
-              } catch (e) {
-                console.warn(`[ADMIN AI AGENT] Ошибка копирайтинга с моделью ${activeModel}, пробуем фолбек...`);
-                const fallbackRes = await executeWithFallback([descPrompt], {
-                  systemInstruction: 'Ты ИИ-копирайтер брутального ателье кожи "Tak and Rat". Текст должен быть коротким (до 250 символов), харизматичным, без клише, подчеркивать честность материалов.',
-                  temperature: 0.8
-                });
-                descResponse = fallbackRes.response;
-              }
-              result = { description: descResponse.text || "Ошибка генерации" };
-            } else {
-              result = { error: `Функция ${name} не поддерживается.` };
-            }
-          } catch (toolErr: any) {
-            console.error(`[ADMIN AI AGENT] Ошибка выполнения инструмента ${name}:`, toolErr);
-            result = { error: toolErr.message || 'Unknown tool execution error' };
-          }
-
-          toolResults.push({
-            functionResponse: {
-              name,
-              response: result
-            }
+        if (name === 'add_product') {
+          const { data, error } = await supabase.from('products').insert([{
+            name: args.name,
+            price: args.price,
+            description: args.description,
+            category: args.category || 'accessories',
+            stock_quantity: args.stock_quantity ?? 10,
+            image_url: args.image_url || '',
+            is_visible: true,
+          }]).select();
+          return error ? { error: error.message } : { success: true, product: data[0] };
+        }
+        if (name === 'update_product') {
+          const { id, ...fields } = args;
+          const { data, error } = await supabase.from('products').update(fields).eq('id', id).select();
+          return error ? { error: error.message } : { success: true, product: data[0] };
+        }
+        if (name === 'delete_product') {
+          const { error } = await supabase.from('products').delete().eq('id', args.id);
+          return error ? { error: error.message } : { success: true };
+        }
+        if (name === 'generate_product_description') {
+          const prompt = `Напиши брутальное, цепляющее описание в стиле киберпанк для кожаного товара.
+Название товара: ${args.name}
+Категория: ${args.category}
+Материалы / фичи: ${args.key_features || 'Премиальная натуральная кожа КРС, латунная прочная фурнитура, ручная обработка краев'}`;
+          const { content } = await bestEffort({
+            messages: [
+              { role: 'system', content: 'Ты ИИ-копирайтер брутального ателье кожи "Tak and Rat". Текст короткий (до 250 символов), харизматичный, без клише, подчеркивает честность материалов.' },
+              { role: 'user', content: prompt },
+            ],
+            temperature: 0.8,
+            log: 'ADMIN AI AGENT',
           });
+          return { description: content || 'Ошибка генерации' };
         }
-
-        // Записываем ход выполнения в историю диалога
-        mappedContents.push({
-          role: 'model',
-          parts: response.candidates[0].content.parts
-        });
-
-        mappedContents.push({
-          role: 'user',
-          parts: toolResults
-        });
-
-        // Запрашиваем ответ с учетом результатов инструментов
-        const nextStep = await executeWithFallback(mappedContents, {
-          systemInstruction: systemPrompt,
-          tools: [{ functionDeclarations: toolsList }],
-          temperature: 0.7
-        });
-        response = nextStep.response;
-        activeModel = nextStep.activeModel;
-
-        functionCalls = response.functionCalls;
+        return { error: `Функция ${name} не поддерживается.` };
       }
 
-      const finalReply = response.text || "ОПЕРАЦИЯ ЗАВЕРШЕНА: Брутальный ответ сформирован.";
-      res.json({ reply: finalReply });
+      let result = await bestEffort({ messages, tools: toolsList, temperature: 0.7, log: 'ADMIN AI AGENT' });
+      let loopCounter = 0;
+
+      while (result.toolCalls.length > 0 && loopCounter < 5) {
+        loopCounter++;
+        console.log(`[ADMIN AI AGENT] Итерация ${loopCounter}. Инструменты: ${result.toolCalls.map((c) => c.function.name).join(', ')}`);
+        messages.push({ role: 'assistant', content: result.content, tool_calls: result.toolCalls });
+
+        for (const call of result.toolCalls) {
+          let args: any = {};
+          try { args = JSON.parse(call.function.arguments || '{}'); } catch { args = {}; }
+          let toolResult: any;
+          try {
+            toolResult = await runTool(call.function.name, args);
+          } catch (toolError: any) {
+            console.error(`[ADMIN AI AGENT] Ошибка инструмента ${call.function.name}:`, toolError);
+            toolResult = { error: toolError?.message || 'Unknown tool execution error' };
+          }
+          messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(toolResult) });
+        }
+
+        result = await bestEffort({ messages, tools: toolsList, temperature: 0.7, log: 'ADMIN AI AGENT' });
+      }
+
+      res.json({ reply: result.content || 'ОПЕРАЦИЯ ЗАВЕРШЕНА: Брутальный ответ сформирован.' });
     } catch (error: any) {
-      console.error(`[ADMIN AI AGENT] Критическая ошибка агента:`, error);
-      res.status(500).json({ error: `TRINITY CORE CRITICAL ERROR: ${error.message}` });
+      console.error('[ADMIN AI AGENT] Критическая ошибка агента:', error);
+      res.status(500).json({ error: `TRINITY CORE CRITICAL ERROR: ${error?.message || error}` });
     }
   });
 

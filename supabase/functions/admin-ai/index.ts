@@ -1,6 +1,5 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.1";
-import { GoogleGenAI, Type } from "https://esm.sh/@google/genai@1.40.0";
 import { buildOrder } from "./order.ts";
 import { verifyInitData } from "./telegram.ts";
 import { decideByKey, idempotencyKey } from "./idempotency.ts";
@@ -174,11 +173,17 @@ Deno.serve(async (req: Request) => {
 
       // Deno не знает process.env: в функции окружение читается через Deno.env.
       // С process.env эта ветка падала на ReferenceError, и чат не отвечал.
-      const aiKey = Deno.env.get('API_KEY') || '';
-      if (aiKey.length === 0) {
+      // Провайдеры OpenAI-совместимые: OpenRouter первым, LiteRouter запасным.
+      // Gemini выпилен. LiteRouter ограничен по входному контексту — для чата
+      // хватает, для длинных историй предпочтителен OpenRouter.
+      const aiKey = Deno.env.get('OPENROUTER_API_KEY') || Deno.env.get('API_KEY') || '';
+      const litKey = Deno.env.get('LITEROUTER_API_KEY') || '';
+      if (aiKey.length === 0 && litKey.length === 0) {
         return new Response(JSON.stringify({ error: 'CHAT_UNAVAILABLE', reason: 'API_KEY_MISSING' }), { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-      const ai = new GoogleGenAI({ apiKey: aiKey });
+      const providers = [];
+      if (aiKey) providers.push({ key: aiKey, base: 'https://openrouter.ai/api/v1/chat/completions', model: Deno.env.get('AI_MODEL') || 'meta-llama/llama-3.1-8b-instruct:free' });
+      if (litKey) providers.push({ key: litKey, base: 'https://api.literouter.com/v1/chat/completions', model: 'deepseek-v3.1:free' });
       
       const systemInstruction = `
       ПРОТОКОЛ ИНТЕРФЕЙСА: КВАНТОВО-ЭТИЧЕСКИЙ ГРАДИЕНТ ГАРМОНИИ (∇ε_Total)
@@ -202,40 +207,37 @@ Deno.serve(async (req: Request) => {
       ОТВЕТ В ФОРМАТЕ JSON.
       `;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: [
-          ...(history || []).map((h: any) => ({ 
-            role: h.role === 'assistant' ? 'model' : 'user', 
-            parts: [{ text: h.content }] 
-          })),
-          { role: 'user', parts: [{ text: message }] }
-        ],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              reply: { type: Type.STRING },
-              metrics: {
-                type: Type.OBJECT,
-                properties: {
-                  total: { type: Type.NUMBER },
-                  c: { type: Type.NUMBER },
-                  d: { type: Type.NUMBER },
-                  b: { type: Type.NUMBER }
-                },
-                required: ["total", "c", "d", "b"]
-              }
-            },
-            required: ["reply", "metrics"]
-          },
-          systemInstruction,
-          thinkingConfig: { thinkingBudget: 12000 }
-        }
-      });
+      const messages = [
+        { role: 'system', content: systemInstruction },
+        ...(history || []).map((h: any) => ({ role: h.role === 'assistant' ? 'assistant' : 'user', content: h.content })),
+        { role: 'user', content: message },
+      ];
 
-      return new Response(response.text, { 
+      let text = '';
+      for (const p of providers) {
+        try {
+          const upstream = await fetch(p.base, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${p.key}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: p.model,
+              messages,
+              response_format: { type: 'json_object' },
+            }),
+          });
+          if (!upstream.ok) continue;
+          const data = await upstream.json();
+          text = data.choices?.[0]?.message?.content || '';
+          if (text) break;
+        } catch {
+          // неисправный провайдер — пробуем следующий
+        }
+      }
+      if (!text) {
+        return new Response(JSON.stringify({ error: 'CHAT_UNAVAILABLE', reason: 'UPSTREAM_FAILED' }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      return new Response(text, { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }

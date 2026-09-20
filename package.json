@@ -24,8 +24,7 @@
     "check:notify": "node scripts/check-notify.mjs"
   },
   "dependencies": {
-    "@google/genai": "^2.9.0",
-    "@supabase/supabase-js": "^2.39.7",
+        "@supabase/supabase-js": "^2.39.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",

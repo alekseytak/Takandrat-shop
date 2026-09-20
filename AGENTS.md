@@ -301,3 +301,27 @@ SHOP_URL=https://... npm run check:shop   # проверка боевого ад
   настроена, голосовых моделей нет. Для них нужен отдельный сервис.
 - Фото: модели шлюза не удерживают изделие неизменным, поэтому черновики
   отклоняются. Каталогу нужна пересъёмка, а не обработка.
+
+## Состояние на 19 сентября (позже): провайдеры LLM
+- **Gemini (SDK `@google/genai`) выпилен из всего кода.** `@google/genai` убран
+  из `package.json`; `server.ts`, Vercel-функции и Edge Function `admin-ai`
+  переведены на OpenAI-совместимые вызовы. Остался только исторический ярлык
+  `GEMINI_NATIVE_RESTORATION` в `src/constants/SystemLog.ts` — это запись о
+  прошлом, не код.
+- **Провайдеры текста: OpenRouter первым, LiteRouter запасным.** Общий слой —
+  `src/lib/llm.ts` (для `server.ts`) и его копия `api/_lib/llm.ts` (для
+  Vercel-функций: они не импортируют из `src/` — урок про
+  `FUNCTION_INVOCATION_FAILED`).
+- **LiteRouter.** OpenAI-совместимый (`https://api.literouter.com/v1`), ключ в
+  `~/.takandrat/literouter-api-key` (600). Только бесплатные модели, суффикс
+  `:free` (напр. `deepseek-v3.1:free`, `glm-5.2:free`), режет входной контекст —
+  для коротких задач и субагентов. Пробный прогон вернул ответ.
+- **Наработки из `.kilo/worktrees/grizzled-ringer` перенесены:** Vercel-функции
+  `api/chat.ts`, `api/admin/chat.ts` (админ-чат с инструментами),
+  `api/admin/products.ts`, `api/admin/drive-fetch.ts`, `api/_supabaseAdmin.ts`,
+  а также `.githooks/` и `SECURITY.md`. Поведение выровнено с фронтом:
+  `/api/chat` без секрета, `/api/admin/chat` берёт `telegramId` из тела,
+  `/api/admin/products` — из заголовка `x-telegram-id`.
+- **`tools/factory.ts` НЕ использует Google SDK** — он ходит на шлюз oneprovider
+  (имена моделей там совпадают с «gemini-*», но это не GenAI SDK). Его миграция
+  не касалась.
