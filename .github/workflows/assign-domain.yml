@@ -8,7 +8,7 @@ name: Боевой домен на свежий деплой
 # Поэтому после каждого пуша в main домен назначается собранному деплою заново.
 #
 # Секрет VERCEL_TOKEN — токен Vercel формата vcp_… (Settings → Tokens).
-# Ничего секретного в самом файле нет: id команды и проекта видны в URL Vercel.
+# Секретного в самом файле нет: id команды и проекта видны в адресах Vercel.
 
 on:
   push:
@@ -32,57 +32,45 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+
           if [ -z "${VERCEL_TOKEN:-}" ]; then
             echo "Нет секрета VERCEL_TOKEN — назначить домен нечем." >&2
             exit 1
           fi
 
-          api() { curl -sS --max-time 30 -H "Authorization: Bearer $VERCEL_TOKEN" "$@"; }
+          LIST_URL="https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&teamId=$TEAM_ID&limit=20"
+          FILTER='.deployments[] | select((.meta.githubCommitSha // "") == $sha and .target == "production")'
 
           uid=""
           for i in $(seq 1 40); do
-            state=$(api "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&teamId=$TEAM_ID&limit=20" \
-              | SHA="$SHA" python3 -c '
-import json, os, sys
-sha = os.environ["SHA"]
-try:
-    data = json.load(sys.stdin)
-except Exception:
-    print("none none"); raise SystemExit
-deps = data.get("deployments", data) if isinstance(data, dict) else data
-for d in deps or []:
-    meta = d.get("meta") or {}
-    if (meta.get("githubCommitSha") or "") == sha and d.get("target") == "production":
-        print(d.get("uid"), d.get("state")); break
-else:
-    print("none none")
-')
-            set -- $state
-            uid="$1"; ready="$2"
-            echo "[$i] деплой $uid состояние $ready"
-            if [ "$ready" = "READY" ]; then break; fi
-            if [ "$ready" = "ERROR" ] || [ "$ready" = "CANCELED" ]; then
-              echo "Деплой этого коммита не собрался ($ready)." >&2; exit 1
+            resp=$(curl -sS --max-time 30 -H "Authorization: Bearer $VERCEL_TOKEN" "$LIST_URL")
+            uid=$(echo "$resp" | jq -r --arg sha "$SHA" "$FILTER | .uid" | head -1)
+            state=$(echo "$resp" | jq -r --arg sha "$SHA" "$FILTER | (.state // .readyState)" | head -1)
+            echo "[$i] деплой=$uid состояние=$state"
+            if [ "$state" = "READY" ]; then break; fi
+            if [ "$state" = "ERROR" ] || [ "$state" = "CANCELED" ]; then
+              echo "Деплой этого коммита не собрался: $state" >&2
+              exit 1
             fi
+            uid=""
             sleep 15
           done
 
-          if [ -z "$uid" ] || [ "$uid" = "none" ]; then
-            echo "Деплой коммита $SHA не найден." >&2; exit 1
+          if [ -z "$uid" ] || [ "$uid" = "null" ]; then
+            echo "Деплой коммита $SHA не найден за отведённое время." >&2
+            exit 1
           fi
 
-          resp=$(api -X POST -H 'Content-Type: application/json' \
+          out=$(curl -sS --max-time 30 -X POST \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H 'Content-Type: application/json' \
             -d "{\"alias\":\"$DOMAIN\"}" \
             "https://api.vercel.com/v2/deployments/$uid/aliases?teamId=$TEAM_ID")
-          echo "ответ Vercel: $resp"
+          echo "ответ Vercel: $out"
 
-          echo "$resp" | python3 -c '
-import json, sys
-want = "takandrat-shop.vercel.app"
-data = json.load(sys.stdin)
-if isinstance(data, dict) and data.get("error"):
-    raise SystemExit("Vercel отказал: " + json.dumps(data["error"], ensure_ascii=False))
-if (data or {}).get("alias") != want:
-    raise SystemExit("домен не назначен: " + str(data)[:300])
-print("домен " + want + " назначен на " + str(data.get("deployment", {}).get("id") or data.get("deploymentId") or "деплой"))
-'
+          if ! echo "$out" | jq -e --arg d "$DOMAIN" '.alias == $d' > /dev/null; then
+            echo "Домен не назначен. Ответ Vercel выше." >&2
+            exit 1
+          fi
+
+          echo "Готово: $DOMAIN указывает на деплой $uid"
