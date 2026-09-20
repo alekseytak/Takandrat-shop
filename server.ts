@@ -15,8 +15,14 @@ async function startServer() {
   // Порт можно задать переменной: проверки поднимают свой магазин отдельно от
   // рабочего, иначе они дерутся за один и тот же порт.
   const PORT = Number(process.env.PORT) || 3000;
+  // Владельцы: ADMIN_TELEGRAM_IDS, а если он пуст — TELEGRAM_ADMIN_CHAT_ID.
+  // Та же логика в Edge Function (admin-ai/admin.ts): на боевом Vercel задан
+  // только TELEGRAM_ADMIN_CHAT_ID, и без фолбэка админка отказывала бы владельцу.
+  const explicitAdmins = (process.env.ADMIN_TELEGRAM_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
   const adminTelegramIds = new Set(
-    (process.env.ADMIN_TELEGRAM_IDS || '').split(',').map(id => id.trim()).filter(Boolean)
+    explicitAdmins.length > 0
+      ? explicitAdmins
+      : (process.env.TELEGRAM_ADMIN_CHAT_ID || '').split(',').map(id => id.trim()).filter(Boolean)
   );
 
   function isAdminTelegramId(value: unknown) {
