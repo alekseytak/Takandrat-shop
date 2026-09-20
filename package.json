@@ -22,7 +22,8 @@
     "check:admin": "node supabase/functions/admin-ai/admin.test.ts",
     "check:sync": "node scripts/check-catalog-sync.mjs",
     "check:notify": "node scripts/check-notify.mjs",
-    "check:prompt": "node scripts/check-prompt.mjs"
+    "check:prompt": "node scripts/check-prompt.mjs",
+    "check:injection": "node scripts/check-injection.mjs"
   },
   "dependencies": {
         "@supabase/supabase-js": "^2.39.7",
