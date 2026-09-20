@@ -133,6 +133,16 @@ try {
   const loaded = await waitFor(`document.readyState === 'complete'`, 'загрузка страницы', 30000);
   check('страница загрузилась', loaded);
 
+  // В подвале стоял вписанный руками «© 2025» — в 2026-м он врал покупателю.
+  // Теперь год берётся из часов, и проверка следит, чтобы он не отстал.
+  const currentYear = String(new Date().getFullYear());
+  const footerText = await evaluate("(() => { const f = document.querySelector('footer'); return f ? f.innerText : ''; })()");
+  check(
+    'в подвале текущий год',
+    contains(footerText, `© ${currentYear}`),
+    `подвал говорит: ${String(footerText).replace(/\s+/g, ' ').slice(0, 90)}`,
+  );
+
   // 1. Витрина: товары должны прийти из живой базы — сверяем с тем, что в ней лежит.
   // Что должно быть на витрине, берём из живой базы публичным ключом: раньше
   // проверка ждала название из встроенного каталога — это было верно, пока база

@@ -109,7 +109,7 @@ export const Footer: React.FC = () => {
         </div>
         
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center pt-10 md:pt-14 mt-10 md:mt-14 border-t border-brand-text/5 text-[8px] md:text-[9px] font-black mono uppercase opacity-30 gap-4 text-center md:text-left text-brand-text">
-          <div>© 2025 {BRAND_NAME} // САНКТ-ПЕТЕРБУРГ</div>
+          <div>© {new Date().getFullYear()} {BRAND_NAME} // САНКТ-ПЕТЕРБУРГ</div>
           <div className="flex gap-4 md:gap-8 flex-wrap justify-center">
             <span>Ручная Работа</span>
             <span>Соответствие Стандартам</span>

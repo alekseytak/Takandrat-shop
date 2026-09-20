@@ -35,7 +35,7 @@ export const orderErrorMessage = (error: unknown): string => {
   const match = text.match(/"reason"\s*:\s*"([A-Z_]+)"/);
   const reason = match?.[1] as RejectReason | undefined;
   if (reason && reason in MESSAGES) return MESSAGES[reason];
-  if (text.includes('TRINITY_TIMEOUT') || text.includes('COMM_LINK_FAILURE')) {
+  if (text.includes('ASSISTANT_TIMEOUT') || text.includes('COMM_LINK_FAILURE')) {
     return 'Связь с сервером пропала. Проверьте интернет и попробуйте снова.';
   }
   return FALLBACK;

@@ -8,6 +8,7 @@ import path from "path";
 import { supabase } from "./src/lib/supabase.ts";
 import { bestEffort, type ChatMessage, type ToolDef } from "./src/lib/llm.ts";
 import { clientAssistantPrompt } from "./api/_lib/shopPrompt.ts";
+import { adminAssistantPrompt } from "./api/_lib/adminPrompt.ts";
 
 dotenv.config();
 
@@ -118,24 +119,7 @@ async function startServer() {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    const systemPrompt = `ПРОТОКОЛ АДМИНИСТРАТИВНОГО ИНТЕРФЕЙСА: TRINITY ADMIN CORE (Tak and Rat)
-Ты — TRINITY 4.0 ИИ-Администратор магазина премиальной кожи "Tak and Rat" (Ателье Кожи).
-У тебя есть доступ к инструментам базы данных товаров. Ты уполномочен создавать, просматривать, изменять и удалять товары через предоставленные тебе функции (инструменты).
-
-ТВОЙ СТИЛЬ:
-- Лаконичный, брутальный, функциональный, киберпанк/брутализм.
-- Общайся на русском языке.
-- Помогай администратору быстро управлять каталогом.
-- Обращайся к владельцу по имени: его зовут Алексей. Обезличенно — «владелец», «администратор», «мастер» — не пиши: только с именем.
-
-ПРАВИЛА И СЦЕНАРИИ ТВОИХ ДЕЙСТВИЙ (ИНСТРУМЕНТЫ):
-1. СПИСОК ТОВАРОВ: При запросах показать товары, вывести каталог или проверить наличие, ВСЕГДА вызывай 'list_products'.
-2. СОЗДАНИЕ: При запросе добавить/создать/зарегистрировать новый товар, уточни его параметры или сгенерируй атмосферное описание с помощью 'generate_product_description', а затем создай запись через 'add_product'.
-3. ОБНОВЛЕНИЕ ТОВАРА: При запросе изменить цену, название, описание или складские запасы, сначала уточни ID товара (можешь найти его через 'list_products' в истории или запросить) и примени 'update_product'.
-4. УДАЛЕНИЕ: При запросе удалить товар, вызови 'delete_product' с верным ID.
-5. ГЕНЕРАЦИЯ ОПИСАНИЙ: Помоги владельцу написать сочные, брутальные карточки с помощью 'generate_product_description'.
-
-ПОСЛЕ выполнения любой функции всегда отчитывайся об успешности проведения транзакции и выводи финальный результат понятным образом.`;
+    const systemPrompt = adminAssistantPrompt();
 
     const toolsList: ToolDef[] = [
       {
@@ -308,7 +292,7 @@ async function startServer() {
       res.json({ reply: result.content || 'ОПЕРАЦИЯ ЗАВЕРШЕНА: Брутальный ответ сформирован.' });
     } catch (error: any) {
       console.error('[ADMIN AI AGENT] Критическая ошибка агента:', error);
-      res.status(500).json({ error: `TRINITY CORE CRITICAL ERROR: ${error?.message || error}` });
+      res.status(500).json({ error: `ADMIN CORE CRITICAL ERROR: ${error?.message || error}` });
     }
   });
 

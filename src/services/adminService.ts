@@ -45,7 +45,7 @@ async function invokeFunction(functionName: string, payload: any = {}, signal?: 
     return await response.json();
   } catch (err: any) {
     if (err.name === 'AbortError' && !signal?.aborted) {
-      throw new Error("TRINITY_TIMEOUT: Обработка запроса заняла слишком много времени.");
+      throw new Error("ASSISTANT_TIMEOUT: Обработка запроса заняла слишком много времени.");
     }
     
     if (retryCount < endpoints.length - 1) {
@@ -70,7 +70,7 @@ const telegramInitData = (): string => {
 };
 
 export const adminService = {
-  async checkTrinityStatus(): Promise<boolean> {
+  async checkAssistantStatus(): Promise<boolean> {
     try {
       const data = await invokeFunction('admin-ai', { action: 'ping' });
       return data?.status === 'online';

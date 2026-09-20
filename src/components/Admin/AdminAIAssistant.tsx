@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { ASSISTANT_NAME } from '../../../api/_lib/shopPrompt';
 import { adminService } from '@/services/adminService';
 import { useStore } from '@/store';
 import { Paperclip, Loader2, Link2, X, FileSpreadsheet, FileText, Image as ImageIcon } from 'lucide-react';
@@ -20,7 +21,7 @@ interface Message {
 export const AdminAIAssistant: React.FC = () => {
   const { currentUser } = useStore();
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'MCP TRINITY SYSTEM INITIALIZED. WAITING FOR COMMANDS. ТЕПЕРЬ ПОДДЕРЖИВАЕТСЯ ЗАГРУЗКА ИЗОБРАЖЕНИЙ, ТАБЛИЦ И СВЯЗЬ С GOOGLE DRIVE.' }
+    { role: 'assistant', content: `MCP ${ASSISTANT_NAME.toUpperCase()} SYSTEM INITIALIZED. WAITING FOR COMMANDS. ТЕПЕРЬ ПОДДЕРЖИВАЕТСЯ ЗАГРУЗКА ИЗОБРАЖЕНИЙ, ТАБЛИЦ И СВЯЗЬ С GOOGLE DRIVE.` }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -177,7 +178,7 @@ export const AdminAIAssistant: React.FC = () => {
 
       <div className="p-4 bg-black text-white border-b-2 border-black flex justify-between items-center">
         <div>
-            <h2 className="text-xl font-black uppercase tracking-widest">TRINITY ADMIN MCP</h2>
+            <h2 className="text-xl font-black uppercase tracking-widest">{ASSISTANT_NAME.toUpperCase()} ADMIN MCP</h2>
             <p className="text-[10px] font-mono opacity-70">CONTROL MODE: ENABLED | COHERENCE: MAX</p>
         </div>
         {loading && <Loader2 className="animate-spin w-4 h-4 text-white" />}
@@ -215,7 +216,7 @@ export const AdminAIAssistant: React.FC = () => {
         {isDragging && (
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex flex-col items-center justify-center border-4 border-dashed border-black m-2">
             <Paperclip size={48} className="animate-bounce mb-2 text-white" />
-            <span className="text-white uppercase font-black text-xs tracking-wider">ПЕРЕТАЩИТЕ СЮДА ФАЙЛЫ ДЛЯ TRINITY CORE</span>
+            <span className="text-white uppercase font-black text-xs tracking-wider">ПЕРЕТАЩИТЕ СЮДА ФАЙЛЫ ДЛЯ {ASSISTANT_NAME.toUpperCase()} CORE</span>
           </div>
         )}
         <div ref={messagesEndRef} />

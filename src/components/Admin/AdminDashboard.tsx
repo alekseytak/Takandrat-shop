@@ -13,7 +13,7 @@ export const AdminDashboard: React.FC = () => {
   const [adminStock, setAdminStock] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'orders' | 'stock' | 'ai' | 'log'>('orders');
   const [loading, setLoading] = useState(false);
-  const [trinityOnline, setTrinityOnline] = useState<boolean | null>(null);
+  const [assistantOnline, setTrinityOnline] = useState<boolean | null>(null);
   const [newProduct, setNewProduct] = useState({
     name: '',
     price: '',
@@ -60,7 +60,7 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const checkStatus = async () => {
-    const isOnline = await adminService.checkTrinityStatus();
+    const isOnline = await adminService.checkAssistantStatus();
     setTrinityOnline(isOnline);
   };
 
