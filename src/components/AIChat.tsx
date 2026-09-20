@@ -193,7 +193,7 @@ export const AIChat: React.FC = () => {
               <span className="text-[7px] font-black opacity-40 uppercase">∇ε_Total</span>
               <span className="text-[10px] font-black text-green-500">{(lastAiMetrics.total * 100).toFixed(1)}%</span>
            </div>
-           <span className="text-[10px] font-black text-brand-text/40 animate-pulse uppercase flex items-center">СВЯЗЬ С {ASSISTANT_NAME.toUpperCase()}</span>
+           <span className="text-[10px] font-black text-brand-text/40 animate-pulse uppercase flex items-center">{ASSISTANT_NAME.toUpperCase()} НА СВЯЗИ</span>
         </div>
       </div>
 
