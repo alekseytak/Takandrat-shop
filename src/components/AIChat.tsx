@@ -3,6 +3,7 @@ import { useStore } from '@/store';
 import { PRODUCTS, SIZES } from '@/constants';
 import { adminService } from '@/services/adminService';
 import { Product } from '../types';
+import { CLIENT_GREETING } from '../../api/_lib/shopPrompt';
 import { Paperclip, X, FileSpreadsheet, FileText, Image as ImageIcon } from 'lucide-react';
 
 interface Attachment {
@@ -38,7 +39,7 @@ export const AIChat: React.FC = () => {
       setMessages([{
         id: 'init',
         role: 'assistant',
-        content: 'Приветствую. Я ИИ-консультант TRINITY 4.0. Помогу подобрать кожаную экипировку, рассчитать размеры по вашим меркам или спроектировать уникальный кастомный аксессуар. Загружайте эскизы, ТЗ или фото — я готова составить техническое задание.'
+        content: CLIENT_GREETING
       }]);
     }
   }, []);
