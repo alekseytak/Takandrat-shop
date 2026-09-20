@@ -23,10 +23,11 @@
     "check:sync": "node scripts/check-catalog-sync.mjs",
     "check:notify": "node scripts/check-notify.mjs",
     "check:prompt": "node scripts/check-prompt.mjs",
-    "check:injection": "node scripts/check-injection.mjs"
+    "check:injection": "node scripts/check-injection.mjs",
+    "check:bundle": "node scripts/check-bundle.mjs"
   },
   "dependencies": {
-        "@supabase/supabase-js": "^2.39.7",
+    "@supabase/supabase-js": "^2.39.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
