@@ -3,7 +3,7 @@ import { useStore } from '@/store';
 import { PRODUCTS, SIZES } from '@/constants';
 import { adminService } from '@/services/adminService';
 import { Product } from '../types';
-import { CLIENT_GREETING } from '../../api/_lib/shopPrompt';
+import { ASSISTANT_NAME, CLIENT_GREETING } from '../../api/_lib/shopPrompt';
 import { Paperclip, X, FileSpreadsheet, FileText, Image as ImageIcon } from 'lucide-react';
 
 interface Attachment {
@@ -193,7 +193,7 @@ export const AIChat: React.FC = () => {
               <span className="text-[7px] font-black opacity-40 uppercase">∇ε_Total</span>
               <span className="text-[10px] font-black text-green-500">{(lastAiMetrics.total * 100).toFixed(1)}%</span>
            </div>
-           <span className="text-[10px] font-black text-brand-text/40 animate-pulse uppercase flex items-center">СВЯЗЬ С ТРИНИТИ</span>
+           <span className="text-[10px] font-black text-brand-text/40 animate-pulse uppercase flex items-center">СВЯЗЬ С {ASSISTANT_NAME.toUpperCase()}</span>
         </div>
       </div>
 
@@ -240,7 +240,7 @@ export const AIChat: React.FC = () => {
         {isLoading && (
           <div className="flex items-center gap-3">
              <div className="w-2 h-2 bg-brand-text animate-ping"></div>
-             <div className="text-[10px] font-black uppercase opacity-40">ТРИНИТИ ДУМАЕТ...</div>
+             <div className="text-[10px] font-black uppercase opacity-40">{ASSISTANT_NAME.toUpperCase()} ДУМАЕТ...</div>
           </div>
         )}
         <div ref={messagesEndRef} />
