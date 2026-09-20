@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { bestEffort, type ChatMessage } from './_lib/llm';
+import { bestEffort, type ChatMessage } from './_lib/llm.js';
 
 /**
  * Публичный ассистент магазина (Vercel).

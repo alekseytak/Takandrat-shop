@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from '../_supabaseAdmin';
-import { bestEffort, type ChatMessage, type ToolDef } from '../_lib/llm';
+import { getSupabaseAdmin } from '../_supabaseAdmin.js';
+import { bestEffort, type ChatMessage, type ToolDef } from '../_lib/llm.js';
 
 const supabase = getSupabaseAdmin();
 
