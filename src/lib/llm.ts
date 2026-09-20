@@ -52,13 +52,13 @@ export type ChatResult = {
   provider: ProviderId;
 };
 
-/** Бесплатные модели OpenRouter — те, что уже работали в магазине. */
+/** Бесплатные модели OpenRouter (сверено с /v1/models; слоты ротируются, бывает 429 — тогда спасает LiteRouter). */
 const OPENROUTER_MODELS = [
-  'meta-llama/llama-3.1-8b-instruct:free',
-  'meta-llama/llama-3-8b-instruct:free',
-  'qwen/qwen-2.5-7b-instruct:free',
-  'google/gemma-2-9b-it:free',
-  'mistralai/mistral-7b-instruct:free',
+  'qwen/qwen3.8-27b:free',
+  'google/gemma-4-31b-it:free',
+  'google/gemma-4-26b-a4b-it:free',
+  'z-ai/glm-5.2:free',
+  'liquid/lfm-2.5-2.6b:free',
 ];
 
 /** Бесплатные модели LiteRouter. Сверено с /v1/models 19.09 — суффикс :free. */
