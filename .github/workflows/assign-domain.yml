@@ -1,0 +1,88 @@
+name: Боевой домен на свежий деплой
+
+# Зачем это нужно.
+# Домен takandrat-shop.vercel.app сам за новыми деплоями не следует: в списке
+# automaticAliases у свежего деплоя его нет, а ручная привязка остаётся на том
+# деплое, которому её выдали. Из-за этого боевой адрес молча отдавал старую
+# сборку (в ней даже не было маршрутов /api/* — POST отвечал 405).
+# Поэтому после каждого пуша в main домен назначается собранному деплою заново.
+#
+# Секрет VERCEL_TOKEN — токен Vercel формата vcp_… (Settings → Tokens).
+# Ничего секретного в самом файле нет: id команды и проекта видны в URL Vercel.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: assign-domain
+  cancel-in-progress: false
+
+jobs:
+  alias:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Повесить домен на деплой этого коммита
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          TEAM_ID: team_1Z0A2w08eqiCtHT8ewo2ziqu
+          PROJECT_ID: prj_1U7k1ExLSuyX7QJKu4ET3ftcm5pp
+          DOMAIN: takandrat-shop.vercel.app
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "Нет секрета VERCEL_TOKEN — назначить домен нечем." >&2
+            exit 1
+          fi
+
+          api() { curl -sS --max-time 30 -H "Authorization: Bearer $VERCEL_TOKEN" "$@"; }
+
+          uid=""
+          for i in $(seq 1 40); do
+            state=$(api "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&teamId=$TEAM_ID&limit=20" \
+              | SHA="$SHA" python3 -c '
+import json, os, sys
+sha = os.environ["SHA"]
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    print("none none"); raise SystemExit
+deps = data.get("deployments", data) if isinstance(data, dict) else data
+for d in deps or []:
+    meta = d.get("meta") or {}
+    if (meta.get("githubCommitSha") or "") == sha and d.get("target") == "production":
+        print(d.get("uid"), d.get("state")); break
+else:
+    print("none none")
+')
+            set -- $state
+            uid="$1"; ready="$2"
+            echo "[$i] деплой $uid состояние $ready"
+            if [ "$ready" = "READY" ]; then break; fi
+            if [ "$ready" = "ERROR" ] || [ "$ready" = "CANCELED" ]; then
+              echo "Деплой этого коммита не собрался ($ready)." >&2; exit 1
+            fi
+            sleep 15
+          done
+
+          if [ -z "$uid" ] || [ "$uid" = "none" ]; then
+            echo "Деплой коммита $SHA не найден." >&2; exit 1
+          fi
+
+          resp=$(api -X POST -H 'Content-Type: application/json' \
+            -d "{\"alias\":\"$DOMAIN\"}" \
+            "https://api.vercel.com/v2/deployments/$uid/aliases?teamId=$TEAM_ID")
+          echo "ответ Vercel: $resp"
+
+          echo "$resp" | python3 -c '
+import json, sys
+want = "takandrat-shop.vercel.app"
+data = json.load(sys.stdin)
+if isinstance(data, dict) and data.get("error"):
+    raise SystemExit("Vercel отказал: " + json.dumps(data["error"], ensure_ascii=False))
+if (data or {}).get("alias") != want:
+    raise SystemExit("домен не назначен: " + str(data)[:300])
+print("домен " + want + " назначен на " + str(data.get("deployment", {}).get("id") or data.get("deploymentId") or "деплой"))
+'
