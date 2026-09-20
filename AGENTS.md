@@ -376,3 +376,14 @@ SHOP_URL=https://... npm run check:shop   # проверка боевого ад
 - **Проверено на живом адресе:** `POST /api/chat` вернул осмысленный ответ с
   тегами `[PRODUCT:7]`, `[PRODUCT:8]`, `[PRODUCT:9]` (каталог из базы +
   OpenRouter/LiteRouter).
+- **Боевой домен НЕ следует за деплоями сам — нужен workflow.** Проверено опытом:
+  у свежего деплоя в `automaticAliases` только служебные адреса
+  (`takandrat-shop-aleksey-taks-projects.vercel.app`,
+  `…-git-main-…`) — они за пушами идут, а `takandrat-shop.vercel.app` нет.
+  Ручная привязка (`POST /v2/deployments/{id}/aliases`) держится на том деплое,
+  которому её выдали; удаление привязки даёт 404, автоматика сама не включается.
+  Поэтому заведён `.github/workflows/assign-domain.yml`: на каждый пуш в `main`
+  он ждёт, пока деплой этого коммита станет READY, и вешает домен на него.
+  Секрет `VERCEL_TOKEN` (`vcp_…`) лежит в секретах репозитория GitHub.
+  Проверка выкладки — живой бандл и живой `POST /api/chat`, а не только
+  «деплой READY»: READY бывал и у сборки, до которой домен не доходил.

@@ -243,3 +243,7 @@ AI Gateway (`vck_…`) отдаёт модели, но генерация тре
 Добавлена LITEROUTER_API_KEY в production; список владельцев получил фолбэк на
 TELEGRAM_ADMIN_CHAT_ID (как в admin-ai/admin.ts). Токен Vercel — формат `vcp_…`.
 Проверено живьём: POST /api/chat отвечает реальными товарами.
+Домен takandrat-shop.vercel.app за деплоями не следует: у свежего деплоя его нет
+в automaticAliases, ручная привязка остаётся на старом деплое, а удаление даёт
+404. Заведён .github/workflows/assign-domain.yml (по пушу в main ждёт READY и
+вешает домен); токен Vercel — в секретах GitHub. Проверено прогоном.
