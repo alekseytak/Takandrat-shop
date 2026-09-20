@@ -342,3 +342,37 @@ SHOP_URL=https://... npm run check:shop   # проверка боевого ад
 - **Vercel AI Gateway (`vck_…`)** отдаёт модели (376, без openrouter), но
   генерацию блокирует `customer_verification_required` — нужна привязанная карта.
   Для чата магазина не годится, пока карта не добавлена.
+
+## Состояние на 20 сентября (позже): боевая выкладка починена
+- **Главный урок: относительный импорт в `api/` требует явного расширения `.js`.**
+  Проект объявлен `"type": "module"`, а Vercel api-функции не бандлит: Node ESM
+  не разрешает `./_lib/llm` без расширения, и функция падала при вызове
+  (`FUNCTION_INVOCATION_FAILED`, в заголовке `x-vercel-error`). Работали ровно те
+  функции, у которых нет runtime-импортов (`order-notify`, `payment-details`,
+  `admin/drive-fetch`). Лечение — писать `from './_lib/llm.js'` (TS с
+  `moduleResolution: bundler` маппит `.js` на `.ts`, `npm run lint` доволен).
+  Прежний вывод «не импортировать из `src/`» верен, но неполон: дело в
+  расширении, а не в каталоге.
+- **Боевой домен был прибит к старому деплою.** Vercel собирал мои коммиты
+  (свежие деплои READY, target=production), но `takandrat-shop.vercel.app`
+  держал `dpl_BTqBQe5FdYv91GHLFHkzA8p7dKyU` — старую сборку без `/api/*`
+  (POST отвечал 405). Лечение: назначить алиас новому деплою
+  (`POST /v2/deployments/{id}/aliases` с `{"alias":"takandrat-shop.vercel.app"}`),
+  после чего Vercel подтверждает «already the current production deployment».
+  Проверка: живой бандл и живой POST `/api/chat`.
+- **Токен Vercel — формат `vcp_…`** (не `scl_…`: тот API отвергал как
+  `invalidToken`). Лежит в `~/.takandrat/vercel-token` (600). Аккаунт
+  `alekseytak`, команда `aleksey-taks-projects` (`team_1Z0A2w08eqiCtHT8ewo2ziqu`),
+  проект `takandrat-shop` (`prj_1U7k1ExLSuyX7QJKu4ET3ftcm5pp`).
+- **Переменные боевого окружения.** Тип `sensitive`/`encrypted` API не
+  расшифровывает — пустое значение в ответе не значит «не задано». Реально
+  заданы `OPENROUTER_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`,
+  `SUPABASE_SERVICE_ROLE_KEY`. Добавлена `LITEROUTER_API_KEY` (target
+  production). `ADMIN_TELEGRAM_IDS` в проекте нет вовсе.
+- **Список владельцев: фолбэк на `TELEGRAM_ADMIN_CHAT_ID`.** Так считает Edge
+  Function (`admin-ai/admin.ts`: `adminIdsFromEnv`), так теперь и `server.ts`,
+  `api/admin/chat.ts`, `api/admin/products.ts`. Без фолбэка админка на боевом
+  отказывала бы владельцу, потому что `ADMIN_TELEGRAM_IDS` там не задан.
+- **Проверено на живом адресе:** `POST /api/chat` вернул осмысленный ответ с
+  тегами `[PRODUCT:7]`, `[PRODUCT:8]`, `[PRODUCT:9]` (каталог из базы +
+  OpenRouter/LiteRouter).
