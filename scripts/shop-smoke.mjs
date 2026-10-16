@@ -196,6 +196,25 @@ try {
   check('цена товара на витрине', contains(shop, expected.price), `нет ${expected.price}`);
   check('крутилка «СКАНИРОВАНИЕ ИНВЕНТАРЯ» не залипла', !contains(shop, 'СКАНИРОВАНИЕ ИНВЕНТАРЯ'));
 
+  // 1а. Фотографии товаров должны быть живыми, а не битыми ссылками.
+  //
+  // Этой пробы не было, и она была нужна: 16 октября боевой адрес отдавал
+  // витрину, где три фото из четырёх не открывались (в каталоге стояли пути
+  // `/products/1.jpg` вместо `/products/01.jpg`), а `check:shop` показывал
+  // 27 из 27 зелёными. Он проверял текст, цены и стили — и молчал о том, что
+  // покупатель видит пустые прямоугольники вместо товара.
+  const photos = await evaluate(`JSON.stringify([...document.images]
+    .filter((img) => (img.currentSrc || img.src).includes('/products/'))
+    .map((img) => ({ src: img.currentSrc || img.src, w: img.naturalWidth })))`);
+  const photoList = JSON.parse(photos || '[]');
+  check('на витрине есть фотографии товаров', photoList.length > 0, `найдено ${photoList.length}`);
+  const broken = photoList.filter((p) => !p.w);
+  check(
+    'все фотографии товаров открылись',
+    broken.length === 0,
+    `битых ${broken.length} из ${photoList.length}: ${broken.map((b) => b.src.replace(/^https?:\/\/[^/]+/, '')).join(', ')}`,
+  );
+
   // 2. Корзина: кладём товар и смотрим счётчик в шапке.
   check('кнопка «В КОРЗИНУ» нажата', (await click('В КОРЗИНУ')) === 'нажата');
   const badgeShown = await waitFor(
