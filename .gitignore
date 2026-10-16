@@ -46,3 +46,6 @@ pnpm-debug.log*
 # а записи о них (brief.json, facts.json, verdict.json) — нет, их храним
 content/drafts/**/*.png
 content/drafts/**/*.jpg
+
+# рабочая папка плагина дизайна — не товар и не сайт
+design/

@@ -146,12 +146,27 @@ try {
   // 1. Витрина: товары должны прийти из живой базы — сверяем с тем, что в ней лежит.
   // Что должно быть на витрине, берём из живой базы публичным ключом: раньше
   // проверка ждала название из встроенного каталога — это было верно, пока база
-  // считалась мёртвой, и стало ложью, когда база ожила. Если база недоступна,
-  // возвращаемся к прежнему ожиданию.
+  // считалась мёртвой, и стало ложью, когда база ожила.
+  //
+  // Если база недоступна, витрина показывает запасной каталог из
+  // `src/constants.ts` — ожидание берём оттуда же. Здесь стояли вписанные руками
+  // «КАРТХОЛДЕР VEGETABLE» и 3200: имена товара, которого в каталоге давно нет,
+  // поэтому при молчащей базе проверка не могла пройти вовсе и валила витрину на
+  // ровном месте. Читаем файл, а не повторяем его содержимое — иначе разойдётся.
   const expected = await (async () => {
-    const fallback = { names: ['КАРТХОЛДЕР VEGETABLE'], price: '3200' };
+    const { readFileSync } = await import('node:fs');
+    const builtIn = (() => {
+      try {
+        const source = readFileSync(new URL('../src/constants.ts', import.meta.url), 'utf8');
+        const name = source.match(/name: '((?:[^'\\]|\\.)*)'/)?.[1];
+        const price = source.match(/price: (\d+)/)?.[1];
+        return name && price ? { names: [name.toUpperCase()], price } : null;
+      } catch {
+        return null;
+      }
+    })();
+    const fallback = builtIn ?? { names: ['КАРТХОЛДЕР VEGETABLE'], price: '3200' };
     try {
-      const { readFileSync } = await import('node:fs');
       const rows = readFileSync(new URL('../.env', import.meta.url), 'utf8').split('\n');
       const val = (name) => rows.find((row) => row.startsWith(`${name}=`))?.slice(name.length + 1).trim();
       const url = val('VITE_SUPABASE_URL');
