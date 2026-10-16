@@ -203,15 +203,20 @@ try {
   // `/products/1.jpg` вместо `/products/01.jpg`), а `check:shop` показывал
   // 27 из 27 зелёными. Он проверял текст, цены и стили — и молчал о том, что
   // покупатель видит пустые прямоугольники вместо товара.
-  const photos = await evaluate(`JSON.stringify([...document.images]
-    .filter((img) => (img.currentSrc || img.src).includes('/products/'))
-    .map((img) => ({ src: img.currentSrc || img.src, w: img.naturalWidth })))`);
-  const photoList = JSON.parse(photos || '[]');
+  const photos = `[...document.images]
+    .filter((img) => (img.currentSrc || img.src).includes('/products/'))`;
+  // Ждём загрузки: сразу после отрисовки карточки картинка ещё не открыта, и
+  // `naturalWidth` равен нулю у живой фотографии тоже. Без ожидания проба
+  // ругалась на исправный каталог.
+  const photosReady = await waitFor(
+    `${photos}.every((img) => img.complete && img.naturalWidth > 0)`, 'фотографии товаров', 15000);
+  const photoList = JSON.parse(await evaluate(`JSON.stringify(${photos}
+    .map((img) => ({ src: img.currentSrc || img.src, w: img.naturalWidth })))`) || '[]');
   check('на витрине есть фотографии товаров', photoList.length > 0, `найдено ${photoList.length}`);
   const broken = photoList.filter((p) => !p.w);
   check(
     'все фотографии товаров открылись',
-    broken.length === 0,
+    photosReady && broken.length === 0,
     `битых ${broken.length} из ${photoList.length}: ${broken.map((b) => b.src.replace(/^https?:\/\/[^/]+/, '')).join(', ')}`,
   );
 
