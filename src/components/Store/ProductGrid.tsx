@@ -4,6 +4,7 @@ import { useProductFetch } from '@/hooks/useProductFetch';
 import { useCartManagement } from '@/hooks/useCartManagement';
 import { SIZES } from '../../constants';
 import { Product } from '../../types';
+import { PhotoViewer } from './PhotoViewer';
 
 type ViewMode = 'grid' | 'list';
 type FilterType = 'all' | 'apparel' | 'gear';
@@ -102,6 +103,8 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
   const [selectedSize, setSelectedSize] = useState(SIZES[1]);
   const activeSize = sizes.includes(selectedSize) ? selectedSize : sizes[0] ?? '';
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  // Просмотр во весь экран: открывается нажатием на фотографию.
+  const [viewerOpen, setViewerOpen] = useState(false);
   const { addItemToCart } = useCartManagement();
 
   const handleAddToCart = () => {
@@ -115,7 +118,9 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
     return (
       <div className="border-b-2 border-brand-text bg-brand-bg/40 flex flex-col sm:flex-row group overflow-hidden transition-colors">
         <div 
-          className="w-full sm:w-48 h-64 sm:h-auto border-b-2 sm:border-b-0 sm:border-r-2 border-brand-text bg-brand-text/5 relative overflow-hidden flex-shrink-0"
+          data-product-photo="открыть"
+          className="w-full sm:w-48 h-64 sm:h-auto border-b-2 sm:border-b-0 sm:border-r-2 border-brand-text bg-brand-text/5 relative overflow-hidden flex-shrink-0 cursor-zoom-in"
+          onClick={() => { if (product.images.length > 0) setViewerOpen(true); }}
           onMouseEnter={() => { if (product.images.length > 1) setActiveImageIndex(1); }}
           onMouseLeave={() => { setActiveImageIndex(0); }}
         >
@@ -185,6 +190,15 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
              </button>
           </div>
         </div>
+
+        {viewerOpen && (
+          <PhotoViewer
+            images={product.images}
+            alt={product.name}
+            startIndex={activeImageIndex}
+            onClose={() => setViewerOpen(false)}
+          />
+        )}
       </div>
     );
   }
@@ -197,7 +211,9 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
       </div>
 
       <div 
-        className="aspect-[4/5] bg-brand-text/5 mb-4 md:mb-6 overflow-hidden border-2 border-brand-text brutalist-shadow-sm group-hover:shadow-none transition-all relative"
+        data-product-photo="открыть"
+        className="aspect-[4/5] bg-brand-text/5 mb-4 md:mb-6 overflow-hidden border-2 border-brand-text brutalist-shadow-sm group-hover:shadow-none transition-all relative cursor-zoom-in"
+        onClick={() => { if (product.images.length > 0) setViewerOpen(true); }}
         onMouseEnter={() => { if (product.images.length > 1) setActiveImageIndex(1); }}
         onMouseLeave={() => { setActiveImageIndex(0); }}
       >
@@ -263,6 +279,14 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
             </svg>
         </button>
       </div>
+      {viewerOpen && (
+        <PhotoViewer
+          images={product.images}
+          alt={product.name}
+          startIndex={activeImageIndex}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
     </div>
   );
 };

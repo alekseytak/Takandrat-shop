@@ -1,50 +1,21 @@
 #!/usr/bin/env node
 /**
- * Запасной каталог в коде обязан совпадать с базой.
+ * Каталог в коде не должен врать.
  *
- * `src/constants.ts` — это копия каталога на случай молчащей базы, а не второй
- * источник правды. Пока в нём стояли старые имена и цены, недоступная база
- * показывала покупателю неправду, и заметить это можно было только глазами.
+ * Раньше этот файл сверял `src/constants.ts` с базой: запасной каталог обязан
+ * был совпадать с боевым, иначе при молчащей базе покупатель видел бы старые
+ * цены. С 16 октября каталог живёт в репозитории по решению владельца — база
+ * уходит в паузу от простоя, а фотографии и тексты и так лежат в репозитории и
+ * уезжают на Vercel сборкой. Значит, сверять каталог больше не с чем, кроме
+ * самого себя и файлов на диске, и проверять надо именно это.
+ *
+ * Главная проба — «каждый путь ведёт к файлу». Она появилась не зря: 16 октября
+ * в каталог уехали пути `/products/1.jpg` вместо `/products/01.jpg`, три фото из
+ * четырёх перестали открываться, и ни одна проверка этого не заметила.
  *
  *   node scripts/check-catalog-sync.mjs
  */
-import { readFileSync } from 'node:fs';
-
-const readEnv = (path) => {
-  const out = {};
-  try {
-    for (const line of readFileSync(path, 'utf8').split('\n')) {
-      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-      if (m) out[m[1]] = m[2].replace(/^["']|["']$/g, '');
-    }
-  } catch { /* нет .env — ниже скажем об этом */ }
-  return out;
-};
-
-const env = readEnv('.env');
-const url = env.VITE_SUPABASE_URL || env.SUPABASE_URL;
-const key = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY;
-if (!url || !key) {
-  console.error('Нет .env с адресом и публичным ключом базы — сверять не с чем.');
-  process.exit(1);
-}
-
-const response = await fetch(`${url}/rest/v1/products?select=name,price,description&is_visible=eq.true&order=id`, {
-  headers: { apikey: key, Authorization: `Bearer ${key}` },
-});
-if (!response.ok) {
-  console.error('База не отдала каталог:', response.status, await response.text());
-  process.exit(1);
-}
-const rows = await response.json();
-
-const source = readFileSync('src/constants.ts', 'utf8');
-// Раскодировать escape-последовательности строки в коде: \n, \' и \\.
-// Без этого многострочное описание в файле не совпадёт с текстом из базы.
-const unquote = (raw) => raw.replace(/\\(.)/g, (_, ch) => (ch === 'n' ? '\n' : ch === 't' ? '\t' : ch));
-const names = [...source.matchAll(/name: '((?:[^'\\]|\\.)*)'/g)].map((m) => unquote(m[1]));
-const prices = [...source.matchAll(/price: (\d+)/g)].map((m) => Number(m[1]));
-const descriptions = [...source.matchAll(/description: '((?:[^'\\]|\\.)*)'/g)].map((m) => unquote(m[1]));
+import { readFileSync, existsSync } from 'node:fs';
 
 let failed = 0;
 const check = (name, ok, detail = '') => {
@@ -53,21 +24,57 @@ const check = (name, ok, detail = '') => {
   console.error('  ✗', name, detail ? `— ${detail}` : '');
 };
 
-check('в базе есть товары на витрине', rows.length > 0, `товаров: ${rows.length}`);
-check('в запасном каталоге столько же товаров, сколько на витрине',
-  names.length === rows.length, `в коде ${names.length}, в базе ${rows.length}`);
+const source = readFileSync('src/constants.ts', 'utf8');
 
-for (const [index, row] of rows.entries()) {
-  const where = `товар ${index + 1} (${row.name})`;
-  check(`${where}: имя совпадает`, names[index] === row.name, `в коде «${names[index] ?? '—'}»`);
-  check(`${where}: цена совпадает`, prices[index] === Number(row.price),
-    `в коде ${prices[index] ?? '—'}, в базе ${Number(row.price)}`);
-  check(`${where}: описание совпадает`, descriptions[index] === row.description,
-    'тексты разошлись — обновить вместе с базой');
+/** Раскодировать escape-последовательности строки в коде: \n, \' и \\. */
+const unquote = (raw) => raw.replace(/\\(.)/g, (_, ch) => (ch === 'n' ? '\n' : ch === 't' ? '\t' : ch));
+
+/** Разбор товаров из исходника: по блоку на товар, чтобы поля не перемешались. */
+const products = [...source.matchAll(/\{\s*id: '([^']+)',([\s\S]*?)\n  \},/g)].map(([, id, body]) => ({
+  id,
+  name: unquote(body.match(/name: '((?:[^'\\]|\\.)*)'/)?.[1] ?? ''),
+  price: Number(body.match(/price: (\d+)/)?.[1] ?? 0),
+  description: unquote(body.match(/description: '((?:[^'\\]|\\.)*)'/)?.[1] ?? ''),
+  images: [...(body.match(/images: \[([^\]]*)\]/)?.[1] ?? '').matchAll(/'([^']+)'/g)].map((m) => m[1]),
+}));
+
+check('каталог в коде не пуст', products.length > 0, `товаров: ${products.length}`);
+
+const ids = products.map((p) => p.id);
+check('артикулы не повторяются', new Set(ids).size === ids.length,
+  `повторы: ${ids.filter((id, i) => ids.indexOf(id) !== i).join(', ')}`);
+
+for (const product of products) {
+  const where = `${product.id} (${product.name || 'без имени'})`;
+  check(`${where}: имя заполнено`, product.name.length > 0);
+  check(`${where}: цена — целое положительное число`, Number.isInteger(product.price) && product.price > 0, `цена ${product.price}`);
+  check(`${where}: описание заполнено`, product.description.length > 0);
+  check(`${where}: есть хотя бы одна фотография`, product.images.length > 0);
+}
+
+// Главная проба: путь обязан вести к файлу, который реально лежит в репозитории.
+const allImages = products.flatMap((p) => p.images);
+check('фотографии в каталоге вообще есть', allImages.length > 0, `путей: ${allImages.length}`);
+
+const missing = allImages.filter((path) => !existsSync(`public${path}`));
+check(
+  'каждый путь к фотографии ведёт к файлу в репозитории',
+  missing.length === 0,
+  `нет файлов: ${missing.join(', ')}`,
+);
+
+const notProducts = allImages.filter((path) => !path.startsWith('/products/'));
+check('все фотографии лежат в /products/', notProducts.length === 0, `чужие пути: ${notProducts.join(', ')}`);
+
+// Дубли внутри одного товара — не поломка, но покупатель листает одно и то же.
+for (const product of products) {
+  const unique = new Set(product.images);
+  check(`${product.id}: кадры не повторяются`, unique.size === product.images.length,
+    `кадров ${product.images.length}, уникальных ${unique.size}`);
 }
 
 if (failed) {
-  console.error(`\nРасхождений: ${failed}`);
+  console.error(`\nПровалов: ${failed}`);
   process.exit(1);
 }
-console.log(`\nЗапасной каталог совпадает с базой: ${rows.length} товара.`);
+console.log(`\nКаталог в коде цел: ${products.length} товаров, ${allImages.length} фотографий, все файлы на месте.`);

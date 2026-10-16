@@ -220,6 +220,44 @@ try {
     `битых ${broken.length} из ${photoList.length}: ${broken.map((b) => b.src.replace(/^https?:\/\/[^/]+/, '')).join(', ')}`,
   );
 
+  // 1б. Просмотр фотографий: нажатие на снимок открывает кадр во весь экран,
+  // стрелка листает, крестик закрывает. Раньше кадры листались только точками
+  // под превью, и разглядеть изделие было нельзя.
+  const openedViewer = await evaluate(`(() => {
+    const photo = document.querySelector('[data-product-photo]');
+    if (!photo) return 'нет фотографии';
+    photo.click();
+    return 'нажал';
+  })()`);
+  const viewerShown = await waitFor(
+    `!!document.querySelector('[data-photo-viewer]')`, 'просмотр фотографий', 8000);
+  check('нажатие на фотографию открывает просмотр', openedViewer === 'нажал' && viewerShown,
+    `нажатие: ${openedViewer}`);
+
+  const firstCounter = await evaluate(
+    `document.querySelector('[data-photo-viewer-counter]')?.textContent?.trim() ?? ''`);
+  const nextPressed = await evaluate(`(() => {
+    const next = document.querySelector('[data-photo-viewer-next]');
+    if (!next) return false;
+    next.click();
+    return true;
+  })()`);
+  await sleep(400);
+  const secondCounter = await evaluate(
+    `document.querySelector('[data-photo-viewer-counter]')?.textContent?.trim() ?? ''`);
+  check('стрелка листает на следующий кадр', nextPressed && firstCounter !== secondCounter,
+    `было «${firstCounter}», стало «${secondCounter}»`);
+
+  const imageInViewer = await evaluate(
+    `!!document.querySelector('[data-photo-viewer-image]')?.getAttribute('src')`);
+  check('в просмотре видна фотография', imageInViewer === true);
+
+  await evaluate(`document.querySelector('[data-photo-viewer-close]')?.click()`);
+  const viewerClosed = await waitFor(
+    `!document.querySelector('[data-photo-viewer]')`, 'просмотр закрылся', 8000);
+  check('крестик закрывает просмотр', viewerShown && viewerClosed,
+    viewerShown ? 'просмотр не закрылся' : 'просмотр и не открывался');
+
   // 2. Корзина: кладём товар и смотрим счётчик в шапке.
   check('кнопка «В КОРЗИНУ» нажата', (await click('В КОРЗИНУ')) === 'нажата');
   const badgeShown = await waitFor(
