@@ -136,6 +136,9 @@ try {
   // В подвале стоял вписанный руками «© 2025» — в 2026-м он врал покупателю.
   // Теперь год берётся из часов, и проверка следит, чтобы он не отстал.
   const currentYear = String(new Date().getFullYear());
+  // Подвал появляется не сразу: без ожидания проба читает пустую строку и
+  // ругается «подвал говорит:» — мигание, а не поломка.
+  await waitFor(`(document.querySelector('footer')?.innerText || '').includes('©')`, 'подвал отрисовался', 10000);
   const footerText = await evaluate("(() => { const f = document.querySelector('footer'); return f ? f.innerText : ''; })()");
   check(
     'в подвале текущий год',
@@ -143,54 +146,41 @@ try {
     `подвал говорит: ${String(footerText).replace(/\s+/g, ' ').slice(0, 90)}`,
   );
 
-  // 1. Витрина: товары должны прийти из живой базы — сверяем с тем, что в ней лежит.
-  // Что должно быть на витрине, берём из живой базы публичным ключом: раньше
-  // проверка ждала название из встроенного каталога — это было верно, пока база
-  // считалась мёртвой, и стало ложью, когда база ожила.
+  // 1. Витрина: товары должны прийти из каталога в репозитории.
   //
-  // Если база недоступна, витрина показывает запасной каталог из
-  // `src/constants.ts` — ожидание берём оттуда же. Здесь стояли вписанные руками
-  // «КАРТХОЛДЕР VEGETABLE» и 3200: имена товара, которого в каталоге давно нет,
-  // поэтому при молчащей базе проверка не могла пройти вовсе и валила витрину на
-  // ровном месте. Читаем файл, а не повторяем его содержимое — иначе разойдётся.
+  // Что должно быть на витрине, читаем из `src/constants.ts` — это источник
+  // каталога (`VITE_CATALOG_SOURCE=code`). Здесь стояли вписанные руками
+  // «КАРТХОЛДЕР VEGETABLE» и 3200 — товар, которого в каталоге давно нет;
+  // проверка не могла пройти вовсе.
+  //
+  // Раньше сверяли с базой, и это скрыло настоящую поломку: база ожила и её
+  // четыре старых товара подменили собой каталог из репозитория. Витрина
+  // выглядела исправной — товары, цены, фотографии на месте, — просто не те,
+  // что в репозитории. Поэтому теперь сверяем со ВСЕМ каталогом: каждый товар
+  // из `src/constants.ts` обязан быть на странице.
   const expected = await (async () => {
     const { readFileSync } = await import('node:fs');
-    const builtIn = (() => {
-      try {
-        const source = readFileSync(new URL('../src/constants.ts', import.meta.url), 'utf8');
-        const name = source.match(/name: '((?:[^'\\]|\\.)*)'/)?.[1];
-        const price = source.match(/price: (\d+)/)?.[1];
-        return name && price ? { names: [name.toUpperCase()], price } : null;
-      } catch {
-        return null;
-      }
-    })();
-    const fallback = builtIn ?? { names: ['КАРТХОЛДЕР VEGETABLE'], price: '3200' };
     try {
-      const rows = readFileSync(new URL('../.env', import.meta.url), 'utf8').split('\n');
-      const val = (name) => rows.find((row) => row.startsWith(`${name}=`))?.slice(name.length + 1).trim();
-      const url = val('VITE_SUPABASE_URL');
-      const key = val('VITE_SUPABASE_ANON_KEY');
-      if (!url || !key) return fallback;
-      const res = await fetch(`${url}/rest/v1/products?select=name,price&is_visible=eq.true&order=id&limit=5`, {
-        headers: { apikey: key, Authorization: `Bearer ${key}` },
-      });
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
-      const names = list.map((row) => String(row.name ?? '').toUpperCase()).filter(Boolean);
-      if (names.length === 0) return fallback;
-      return { names, price: String(Math.trunc(Number(list[0].price ?? 0))) };
+      const source = readFileSync(new URL('../src/constants.ts', import.meta.url), 'utf8');
+      const names = [...source.matchAll(/name: '((?:[^'\\]|\\.)*)'/g)].map((m) => m[1].toUpperCase());
+      const price = source.match(/price: (\d+)/)?.[1];
+      if (names.length === 0 || !price) return null;
+      return { names, price };
     } catch {
-      return fallback;
+      return null;
     }
-  })();
-  console.log(`       витрина должна показать: ${expected.names[0]} за ${expected.price}`);
+  })() ?? { names: ['КАРТХОЛДЕР VEGETABLE'], price: '3200' };
+  console.log(`       каталог в коде: ${expected.names.length} товаров, ждём все`);
 
   const catalogShown = await waitFor(
-    `${JSON.stringify(expected.names)}.some((n) => (document.body?.innerText || '').toUpperCase().includes(n))`,
-    'товары на витрине', 30000);
-  check('витрина показывает товары', catalogShown);
-  if (!catalogShown) throw new Error('витрина не отрисовалась — дальше проверять нечего');
+    `${JSON.stringify(expected.names)}.every((n) => (document.body?.innerText || '').toUpperCase().includes(n))`,
+    'все товары каталога на витрине', 30000);
+  check('витрина показывает все товары каталога', catalogShown);
+  if (!catalogShown) {
+    const shown = await evaluate(`JSON.stringify(${JSON.stringify(expected.names)}
+      .filter((n) => !(document.body?.innerText || '').toUpperCase().includes(n)))`);
+    throw new Error(`витрина показала не весь каталог, нет: ${shown}`);
+  }
 
   const shop = await text();
   check('цена товара на витрине', contains(shop, expected.price), `нет ${expected.price}`);
@@ -383,9 +373,11 @@ try {
   const light = await readColors();
   await toggleDark(true);
   await sleep(500);
+  await waitFor(`getComputedStyle(document.body).backgroundColor === 'rgb(0, 0, 0)'`, 'тёмная тема', 8000);
   const dark = await readColors();
   await toggleDark(false);
-  await sleep(500);
+  // Возврат к светлому тоже идёт переходом: ждём именно светлый фон.
+  await waitFor(`getComputedStyle(document.body).backgroundColor === 'rgb(255, 255, 255)'`, 'светлая тема', 8000);
   const back = await readColors();
   check('тёмная тема переключает фон и текст',
     light.bg === 'rgb(255, 255, 255)' && dark.bg === 'rgb(0, 0, 0)'

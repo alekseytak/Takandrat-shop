@@ -92,6 +92,16 @@ export const useProductFetch = () => {
 
   useEffect(() => {
     const fetchProducts = async () => {
+      // Каталог из кода — в базу не ходим вовсе: ни ожидания, ни запросов.
+      // Это не оптимизация, а условие работы: пока база на паузе, любой заход
+      // в неё — четыре секунды пустого ожидания; а когда база оживает, её
+      // каталог подменяет собой тот, что лежит в репозитории, и на витрине
+      // оказываются старые товары.
+      if (CATALOG_FROM_CODE) {
+        setProducts(PRODUCTS);
+        setIsLoading(false);
+        return;
+      }
       try {
         setIsLoading(true);
         const { data, error } = await withTimeout(
