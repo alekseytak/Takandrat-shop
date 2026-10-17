@@ -13,7 +13,15 @@ name: Боевой домен на свежий деплой
 on:
   push:
     branches: [main]
+  # Ручной запуск нужен, чтобы проверить саму проверку: подставьте чужой адрес
+  # (например example.com) — она обязана покраснеть. Проверка, которую нельзя
+  # заставить упасть, ничего не проверяет.
   workflow_dispatch:
+    inputs:
+      domain:
+        description: 'Адрес для сверки (по умолчанию боевой)'
+        required: false
+        default: 'takandrat-shop.vercel.app'
 
 concurrency:
   group: assign-domain
@@ -74,3 +82,68 @@ jobs:
           fi
 
           echo "Готово: $DOMAIN указывает на деплой $uid"
+
+      # Привязка домена — это ещё не выкладка. 16 октября домен отдавал сборку
+      # недельной давности, хотя привязка стояла и деплой был READY: покупатель
+      # видел старый каталог, а проверка выкладки этого не замечала, потому что
+      # смотрела на состояние деплоя, а не на то, что отдаёт адрес.
+      #
+      # Поэтому здесь сравниваем не «деплой готов», а содержимое: имя собранного
+      # бандла на боевом адресе обязано совпасть с именем на самом деплое.
+      # Имя бандла — хеш содержимого, так что совпадение означает «домен отдаёт
+      # именно эту сборку», а расхождение — что домен уехал не туда.
+      - name: Проверить, что боевой адрес отдаёт сборку этого деплоя
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          TEAM_ID: team_1Z0A2w08eqiCtHT8ewo2ziqu
+          PROJECT_ID: prj_1U7k1ExLSuyX7QJKu4ET3ftcm5pp
+          DOMAIN: ${{ github.event.inputs.domain || 'takandrat-shop.vercel.app' }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          # Адрес самого деплоя этого коммита.
+          resp=$(curl -sS --max-time 30 -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v6/deployments?projectId=$PROJECT_ID&teamId=$TEAM_ID&limit=20")
+          url=$(echo "$resp" | jq -r --arg sha "$SHA" \
+            '.deployments[] | select((.meta.githubCommitSha // "") == $sha and .target == "production") | .url' | head -1)
+          if [ -z "$url" ] || [ "$url" = "null" ]; then
+            echo "Не нашёл адрес деплоя коммита $SHA" >&2
+            exit 1
+          fi
+
+          # Имя главного скрипта со страницы: именно оно и есть отпечаток сборки.
+          bundle_of() {
+            local page
+            page=$(curl -sS --max-time 30 "https://$1/")
+            echo "$page" | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' | head -1
+          }
+
+          deployed=$(bundle_of "$url")
+          live=""
+          for i in $(seq 1 30); do
+            live=$(bundle_of "$DOMAIN")
+            echo "[$i] деплой=$deployed боевой=$live"
+            if [ -n "$live" ] && [ "$live" = "$deployed" ]; then break; fi
+            sleep 10
+          done
+
+          if [ -z "$deployed" ]; then
+            echo "Со страницы деплоя не удалось взять имя бандла." >&2
+            exit 1
+          fi
+          if [ "$live" != "$deployed" ]; then
+            echo "Боевой адрес отдаёт не эту сборку: $live вместо $deployed" >&2
+            exit 1
+          fi
+
+          # И сам бандл обязан открываться: страница со ссылкой на скрипт, который
+          # отдаёт 404, — это пустой магазин с целой главной страницей.
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "https://$DOMAIN/$live")
+          echo "Бандл $live на боевом адресе: HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "Бандл не открывается — магазин не запустится." >&2
+            exit 1
+          fi
+
+          echo "Выкладка подтверждена: $DOMAIN отдаёт сборку $live"
