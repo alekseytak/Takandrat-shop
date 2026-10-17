@@ -1,0 +1,44 @@
+name: Проверка боевого адреса
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Открыть каждую фотографию и страницу
+        run: |
+          set -uo pipefail
+          BASE=https://takandrat-shop.vercel.app
+          echo "=== страница ==="
+          code=$(curl -sS -o /tmp/page.html -w '%{http_code}' --max-time 30 "$BASE/")
+          echo "  / : HTTP $code"
+          BUNDLE=$(grep -oE 'assets/index-[A-Za-z0-9_-]+\.js' /tmp/page.html | head -1)
+          echo "  бандл: $BUNDLE"
+
+          echo "=== фотографии ==="
+          bad=0
+          for f in 01 02 03 06 07 08 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37; do
+            c=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$BASE/products/$f.jpg")
+            if [ "$c" != "200" ]; then echo "  БИТЫЙ $f.jpg: HTTP $c"; bad=$((bad+1)); fi
+          done
+          echo "  битых: $bad из 26"
+
+          echo "=== товары в бандле ==="
+          curl -sS -o /tmp/b.js --max-time 30 "$BASE/$BUNDLE"
+          for n in "Объект №04" "Объект №09" "Объект №27" "R-07" "ASH GREY"; do
+            if grep -q "$n" /tmp/b.js; then echo "  $n: есть"; else echo "  $n: НЕТ"; fi
+          done
+
+          echo "=== подписанные кадры ==="
+          for f in 04 05 09 10 11 12; do
+            echo "  $f.jpg: $(grep -o "products/$f.jpg" /tmp/b.js | wc -l) упоминаний"
+          done
+
+          echo "=== маршруты ==="
+          for r in api/payment-details api/order-notify; do
+            c=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 -X POST "$BASE/$r" -H 'Content-Type: application/json' -d '{}')
+            echo "  POST /$r: HTTP $c"
+          done
+          exit $bad
