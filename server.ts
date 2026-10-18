@@ -32,11 +32,17 @@ async function startServer() {
   }
 
   app.get('/api/payment-details', (_req, res) => {
+    const sol = '4QoVmYDgTAH99PVWT13e77FXnWxdSUkhd42bakeJ7zBA';
+    const ton = 'UQCPCI52jq76GTKAZq0HHxMalghb6A_SRVJxSdU0LXpyfat7';
     res.json({
       card: process.env.PAYMENT_CARD_NUMBER || null,
       cardRecipient: process.env.PAYMENT_CARD_RECIPIENT || null,
-      crypto: process.env.PAYMENT_CRYPTO_ADDRESS || null,
-      cryptoNetwork: process.env.PAYMENT_CRYPTO_NETWORK || null
+      crypto: process.env.PAYMENT_CRYPTO_ADDRESS || ton,
+      cryptoNetwork: process.env.PAYMENT_CRYPTO_NETWORK || 'TON (Toncoin / USDT)',
+      wallets: [
+        { network: 'SOL (Solana / USDC / USDT)', label: 'Solana', address: sol },
+        { network: 'TON (Toncoin / USDT TON)', label: 'Ton', address: ton },
+      ],
     });
   });
 

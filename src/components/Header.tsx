@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '@/store';
 import { BRAND_NAME } from '@/constants';
+import { UI_TEXT, CURRENCY_SYMBOL } from '@/lib/i18n';
 import { TorusLogo } from './TorusLogo';
 import { AILogo } from './AILogo';
 
 export const Header: React.FC = () => {
-  const { view, setView, cart, currentUser, theme, toggleTheme } = useStore();
+  const { view, setView, cart, currentUser, theme, toggleTheme, lang, currency, cycleLocale } = useStore();
+  const t = UI_TEXT[lang];
   const totalItemsInCart = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const [logoClicks, setLogoClicks] = useState(0);
@@ -42,11 +44,11 @@ export const Header: React.FC = () => {
                 <TorusLogo className="w-7 h-7 sm:w-9 sm:h-9 text-brand-text" />
             </div>
             <span className="font-black text-sm sm:text-xl tracking-tighter uppercase text-brand-text leading-none pt-0.5 whitespace-nowrap">
-                {BRAND_NAME}
+                {lang === 'en' ? t.brandName : BRAND_NAME}
             </span>
             </div>
             
-            <nav className="flex gap-2 sm:gap-6 items-center">
+            <nav className="flex gap-2 sm:gap-4 items-center">
             {currentUser?.is_admin && (
                 <button 
                 onClick={() => setView('admin')}
@@ -55,6 +57,15 @@ export const Header: React.FC = () => {
                 ADM
                 </button>
             )}
+
+            <button
+                onClick={cycleLocale}
+                data-testid="locale-switch"
+                title="Switch Language & Currency (RU ₽ / EN $ / EN €)"
+                className="text-[9px] sm:text-[10px] mono uppercase font-black tracking-widest px-2 py-1 border-2 border-brand-text bg-brand-bg text-brand-text hover:bg-brand-text hover:text-brand-bg transition-colors whitespace-nowrap"
+            >
+                {lang.toUpperCase()} · {CURRENCY_SYMBOL[currency]}
+            </button>
 
             <button 
                 onClick={toggleTheme}
@@ -68,7 +79,7 @@ export const Header: React.FC = () => {
             </button>
 
             <button onClick={() => setView('corporate')} className={`text-[8px] sm:text-[10px] uppercase font-black tracking-widest px-2 sm:px-3 py-1.5 sm:py-2 border-2 transition-all ${view === 'corporate' ? 'bg-brand-text text-brand-bg border-brand-text' : 'border-transparent sm:hover:border-brand-text text-brand-text'}`}>
-                <span>B2B / МЕРЧ</span>
+                <span>{t.b2bNav}</span>
             </button>
 
             <button onClick={() => setView('chat')} className={`w-9 h-9 sm:w-12 sm:h-12 transition-transform duration-300 relative group sm:hover:scale-110 flex items-center justify-center overflow-hidden border-2 rounded-full ${view === 'chat' ? 'bg-brand-text text-brand-bg border-brand-text' : 'border-transparent'}`}>

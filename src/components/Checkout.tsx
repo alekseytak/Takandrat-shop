@@ -2,13 +2,34 @@ import React from 'react';
 import { useStore } from '@/store';
 import { adminService } from '@/services/adminService';
 import { buildOrderMessage, openOrderChat, orderChatLink, sendOrderToServer } from '@/lib/orderMessage';
+import {
+  UI_TEXT,
+  CRYPTO_WALLETS,
+  getProductName,
+  getProductPrice,
+  formatMoney,
+  getInternationalShipping,
+} from '@/lib/i18n';
 
-type PaymentDetails = { card: string | null; cardRecipient: string | null; crypto: string | null; cryptoNetwork: string | null };
+type WalletEntry = { network: string; label: string; address: string };
+type PaymentDetails = {
+  card: string | null;
+  cardRecipient: string | null;
+  crypto: string | null;
+  cryptoNetwork: string | null;
+  wallets?: WalletEntry[];
+};
 
 export const Checkout: React.FC = () => {
-  const { cart, setView, clearCart } = useStore();
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const { cart, setView, clearCart, lang, currency } = useStore();
+  const t = UI_TEXT[lang];
+  const isInternational = lang === 'en' || currency !== 'RUB';
+  const subtotal = cart.reduce((sum, item) => sum + getProductPrice(item, currency) * item.quantity, 0);
+  const shipping = getInternationalShipping(subtotal, currency, isInternational);
+  const total = subtotal + shipping;
+
   const [payment, setPayment] = React.useState<PaymentDetails | null>(null);
+  const [copiedAddr, setCopiedAddr] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   /** Собранный заказ: показывается, пока покупатель не подтвердит отправку. */
@@ -20,8 +41,28 @@ export const Checkout: React.FC = () => {
     fetch('/api/payment-details')
       .then(response => response.ok ? response.json() : Promise.reject(new Error('PAYMENT_DETAILS_UNAVAILABLE')))
       .then(setPayment)
-      .catch(() => setPayment({ card: null, cardRecipient: null, crypto: null, cryptoNetwork: null }));
+      .catch(() => setPayment({
+        card: null,
+        cardRecipient: null,
+        crypto: CRYPTO_WALLETS[1].address,
+        cryptoNetwork: CRYPTO_WALLETS[1].network,
+        wallets: [...CRYPTO_WALLETS],
+      }));
   }, []);
+
+  const walletsToShow: WalletEntry[] = payment?.wallets?.length
+    ? payment.wallets
+    : [...CRYPTO_WALLETS];
+
+  const handleCopy = async (addr: string) => {
+    try {
+      await navigator.clipboard.writeText(addr);
+      setCopiedAddr(addr);
+      setTimeout(() => setCopiedAddr(null), 2000);
+    } catch {
+      setError(lang === 'en' ? 'Copy failed. Select and copy the address manually.' : 'Не удалось скопировать. Выделите адрес и скопируйте вручную.');
+    }
+  };
 
   // Ключ один на всю попытку оформления: он переживает повторное нажатие,
   // поэтому второй заказ не создаётся, если ответ потерялся в сети.
@@ -47,17 +88,23 @@ export const Checkout: React.FC = () => {
     // заказывает. Цены берутся из каталога, как и раньше.
     const draft = buildOrderMessage({
       lines: cart.map(item => ({
-        name: item.name,
+        name: getProductName(item, lang),
         quantity: item.quantity,
-        price: item.price,
+        price: getProductPrice(item, currency),
         size: item.selectedSize || undefined,
       })),
-      total,
+      total: subtotal,
+      shipping,
+      currency,
+      lang,
       address,
       customerName: useStore.getState().currentUser?.first_name,
     });
 
     try {
+      if (orderMode === 'database' && currency !== 'RUB') {
+        throw new Error(lang === 'en' ? 'Foreign-currency database orders are not supported. Contact Alexey for a quote.' : 'Заказ в этой валюте через базу недоступен. Свяжитесь с Алексеем.');
+      }
       if (orderMode === 'database') {
         const result = await adminService.createOrder({
           // Личность покупателя не отправляем: сервер берёт её из подписи
@@ -96,45 +143,68 @@ export const Checkout: React.FC = () => {
 
   return (
     <div className="p-4 max-w-2xl mx-auto w-full">
-      <h2 className="text-2xl font-black uppercase mb-6">Оформление заказа</h2>
+      <h2 className="text-2xl font-black uppercase mb-6">{t.checkoutTitle}</h2>
       <form onSubmit={handleCheckout} className="flex flex-col gap-4">
-        <input required name="address" type="text" placeholder="Адрес ПВЗ (Яндекс / Ozon / СДЭК)" className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
+        <input required name="address" type="text" placeholder={t.addressPlaceholder} className="border-2 border-brand-text p-3 bg-transparent font-bold uppercase placeholder:opacity-50" />
         <div className="border-2 border-brand-text">
           {cart.map(item => (
             <div
               key={`${item.id}-${item.selectedSize}`}
               className="flex justify-between gap-3 px-3 py-2 border-b-2 border-brand-text last:border-b-0 text-xs font-bold uppercase"
             >
-              <span>{item.name}{item.selectedSize ? ` / ${item.selectedSize}` : ''}</span>
-              <span className="whitespace-nowrap">{item.quantity} × {item.price}₽</span>
+              <span>{getProductName(item, lang)}{item.selectedSize ? ` / ${item.selectedSize}` : ''}</span>
+              <span className="whitespace-nowrap">{item.quantity} × {formatMoney(getProductPrice(item, currency), currency)}</span>
             </div>
           ))}
         </div>
-        <div className="mt-6 pt-6 border-t-2 border-brand-text flex justify-between items-center"><span className="font-black uppercase">К оплате:</span><span className="text-xl font-black">{total}₽</span></div>
-        <div className="mt-8 p-4 border-2 border-brand-text bg-brand-text/5">
-          <h3 className="font-black uppercase text-sm mb-4 tracking-widest">ОПЛАТА ПЕРЕВОДОМ</h3>
-          {payment?.card ? <p className="text-sm font-black">КАРТА: {payment.card}</p> : <p className="text-xs font-bold opacity-60">РЕКВИЗИТЫ КАРТЫ НЕ НАСТРОЕНЫ</p>}
-          {payment?.cardRecipient && <p className="text-xs font-bold mt-1">Получатель: {payment.cardRecipient}</p>}
-          {payment?.crypto && <p className="text-xs font-bold mt-3 break-all">КРИПТО: {payment.crypto}{payment.cryptoNetwork ? ` (${payment.cryptoNetwork})` : ''}</p>}
-          <p className="mt-4 text-[9px] font-bold uppercase opacity-60 leading-tight">После оплаты пришлите подтверждение в Telegram. Данные заказа содержат только Telegram ID и адрес ПВЗ.</p>
+        {isInternational && (
+          <div className="flex justify-between items-center text-xs font-bold uppercase opacity-80 pt-2">
+            <span>{t.shippingLabel}</span>
+            <span>{shipping === 0 ? t.freeShipping : formatMoney(shipping, currency)}</span>
+          </div>
+        )}
+        <div className="mt-4 pt-4 border-t-2 border-brand-text flex justify-between items-center"><span className="font-black uppercase">{t.payTotalLabel}</span><span className="text-xl font-black">{formatMoney(total, currency)}</span></div>
+        <div className="mt-6 p-4 border-2 border-brand-text bg-brand-text/5">
+          <h3 className="font-black uppercase text-sm mb-3 tracking-widest">{t.paymentHeader}</h3>
+          {payment?.card ? <p className="text-sm font-black">{t.cardLabel}: {payment.card}</p> : <p className="text-xs font-bold opacity-60">{t.cardNotSet}</p>}
+          {payment?.cardRecipient && <p className="text-xs font-bold mt-1">{t.recipientLabel}: {payment.cardRecipient}</p>}
+          <div className="mt-4 pt-3 border-t border-brand-text/20 space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-widest">{t.cryptoWalletsTitle}</p>
+            {walletsToShow.map((w) => (
+              <div key={w.label} className="flex flex-col gap-1">
+                <div className="flex justify-between items-center text-[10px] font-bold uppercase">
+                  <span className="opacity-70">{w.network}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(w.address)}
+                    className="underline font-black text-[9px] hover:opacity-60"
+                  >
+                    {copiedAddr === w.address ? t.copiedBtn : t.copyBtn}
+                  </button>
+                </div>
+                <code className="bg-brand-text/10 p-2 text-[10px] font-mono break-all border border-brand-text/20 select-all">
+                  {w.address}
+                </code>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-[9px] font-bold uppercase opacity-60 leading-tight">{t.checkoutNote}</p>
         </div>
         {error && <p role="alert" className="border-2 border-red-600 p-3 text-xs font-bold text-red-600">{error}</p>}
         {sentOrder && (
           <div className="border-2 border-brand-text p-4 flex flex-col gap-3">
             <h3 className="font-black uppercase text-sm tracking-widest" data-testid="order-state">
-              {delivered ? 'ЗАКАЗ УШЁЛ МАСТЕРУ' : 'ЗАКАЗ СОБРАН'}
+              {delivered ? t.orderSentTitle : t.orderDraftTitle}
             </h3>
             <p className="text-[10px] font-bold uppercase opacity-70 leading-tight">
-              {delivered
-                ? 'Мастер получил заказ в Telegram и ответит с подтверждением наличия и реквизитами.'
-                : 'Откройте чат с ботом — текст заказа уже набран. Нажмите «отправить» в Telegram, и заказ придёт мастеру.'}
+              {delivered ? t.orderSentDesc : t.orderDraftDesc}
             </p>
             <pre data-testid="order-draft" className="whitespace-pre-wrap text-[11px] font-bold">{sentOrder}</pre>
-            {!delivered && <a href={orderChatLink(sentOrder)} target="_blank" rel="noreferrer" className="w-full text-center border-2 border-brand-text py-3 font-black uppercase tracking-widest hover:bg-brand-text hover:text-brand-bg transition-colors">ОТКРЫТЬ ЧАТ С БОТОМ</a>}
-            <button type="button" onClick={() => { clearCart(); setView('shop'); }} className="w-full bg-brand-text text-brand-bg py-3 font-black uppercase tracking-widest hover:opacity-90 transition-opacity">{delivered ? 'ВЕРНУТЬСЯ В МАГАЗИН' : 'ЗАКАЗ ОТПРАВЛЕН'}</button>
+            {!delivered && <a href={orderChatLink(sentOrder)} target="_blank" rel="noreferrer" className="w-full text-center border-2 border-brand-text py-3 font-black uppercase tracking-widest hover:bg-brand-text hover:text-brand-bg transition-colors">{t.openBotBtn}</a>}
+            <button type="button" onClick={() => { clearCart(); setView('shop'); }} className="w-full bg-brand-text text-brand-bg py-3 font-black uppercase tracking-widest hover:opacity-90 transition-opacity">{delivered ? t.backToShopBtn : t.orderSubmittedBtn}</button>
           </div>
         )}
-        <button disabled={isSubmitting} type="submit" className="w-full bg-brand-text text-brand-bg py-4 font-black uppercase tracking-widest mt-4 hover:opacity-90 transition-opacity disabled:opacity-50">{isSubmitting ? 'ОТПРАВКА...' : 'ПОДТВЕРДИТЬ ЗАКАЗ'}</button>
+        <button disabled={isSubmitting} type="submit" className="w-full bg-brand-text text-brand-bg py-4 font-black uppercase tracking-widest mt-4 hover:opacity-90 transition-opacity disabled:opacity-50">{isSubmitting ? t.submittingBtn : t.confirmOrderBtn}</button>
       </form>
     </div>
   );

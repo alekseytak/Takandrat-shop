@@ -1,4 +1,5 @@
 import { BRAND_NAME } from '@/constants';
+import { Currency, Lang, formatMoney } from '@/lib/i18n';
 
 /**
  * Заказ уходит мастеру сообщением в Telegram.
@@ -24,36 +25,63 @@ export type OrderLine = {
 export type OrderDraft = {
   lines: OrderLine[];
   total: number;
+  shipping?: number;
+  currency?: Currency;
+  lang?: Lang;
   address: string;
   customerName?: string;
 };
 
 /** Кто заказывает: берём из подписи Telegram, которую передаёт мини-приложение. */
-const telegramBuyer = (): string => {
+const telegramBuyer = (lang: Lang = 'ru'): string => {
   const user = (globalThis as any)?.Telegram?.WebApp?.initDataUnsafe?.user;
-  if (!user) return 'не из Telegram';
+  if (!user) return lang === 'en' ? 'Web buyer (outside Telegram)' : 'не из Telegram';
   const name = [user.first_name, user.last_name].filter(Boolean).join(' ');
   const username = user.username ? ` @${user.username}` : '';
-  return `${name || 'без имени'}${username} (id ${user.id})`;
+  return `${name || (lang === 'en' ? 'unnamed' : 'без имени')}${username} (id ${user.id})`;
 };
 
 /** Текст заказа: то, что мастер прочитает в чате. Только факты заказа. */
-export const buildOrderMessage = ({ lines, total, address, customerName }: OrderDraft): string => {
+export const buildOrderMessage = ({
+  lines,
+  total,
+  shipping = 0,
+  currency = 'RUB',
+  lang = 'ru',
+  address,
+  customerName,
+}: OrderDraft): string => {
   const items = lines
     .map((line, index) => {
       const size = line.size ? ` / ${line.size}` : '';
-      return `${index + 1}. ${line.name}${size} — ${line.quantity} × ${line.price}₽`;
+      return `${index + 1}. ${line.name}${size} — ${line.quantity} × ${formatMoney(line.price, currency)}`;
     })
     .join('\n');
+
+  if (lang === 'en') {
+    const shippingLine = shipping > 0 ? `Shipping (CDEK Global / Air): ${formatMoney(shipping, currency)}` : 'Shipping: not included; CDEK route and quote require confirmation before payment';
+    return [
+      `INTERNATIONAL ORDER · TAK & RAT (${BRAND_NAME})`,
+      '',
+      items,
+      '',
+      shippingLine,
+      `Итого / Total: ${formatMoney(total + shipping, currency)}`,
+      `ПВЗ / Shipping Address: ${address || 'not provided'}`,
+      `Buyer: ${customerName || telegramBuyer('en')}`,
+      '',
+      'Payment via direct crypto (SOL / TON / USDT) or international link. Sending TXID / confirmation here.',
+    ].join('\n');
+  }
 
   return [
     `ЗАКАЗ · ${BRAND_NAME}`,
     '',
     items,
     '',
-    `Итого: ${total}₽`,
+    `Итого: ${formatMoney(total, currency)}`,
     `ПВЗ: ${address || 'адрес не указан'}`,
-    `Покупатель: ${customerName || telegramBuyer()}`,
+    `Покупатель: ${customerName || telegramBuyer('ru')}`,
     '',
     'Оплату перевожу на карту или в крипте, подтверждение пришлю сюда же.',
   ].join('\n');

@@ -2,6 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import { useProductFetch } from '@/hooks/useProductFetch';
 import { useCartManagement } from '@/hooks/useCartManagement';
+import { useStore } from '@/store';
+import { UI_TEXT, getProductName, getProductDescription, getProductPrice, formatMoney } from '@/lib/i18n';
 import { SIZES } from '../../constants';
 import { Product } from '../../types';
 import { PhotoViewer } from './PhotoViewer';
@@ -11,6 +13,8 @@ type FilterType = 'all' | 'apparel' | 'gear';
 
 export const ProductGrid: React.FC = () => {
   const { products, isLoading, isWarmingUp, error } = useProductFetch();
+  const { lang } = useStore();
+  const t = UI_TEXT[lang];
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [filter, setFilter] = useState<FilterType>('all');
 
@@ -27,7 +31,7 @@ export const ProductGrid: React.FC = () => {
          <div className="flex flex-col items-center gap-4">
             <div className="w-8 h-8 border-4 border-brand-text border-t-transparent rounded-full animate-spin"></div>
             <span className="font-bold uppercase tracking-widest text-xs">
-              {isWarmingUp ? 'РАЗОГРЕВ СИСТЕМЫ...' : 'СКАНИРОВАНИЕ ИНВЕНТАРЯ...'}
+              {isWarmingUp ? t.warmingUp : t.scanning}
             </span>
             {isWarmingUp && (
               <span className="text-[10px] opacity-40 uppercase max-w-[200px] text-center">
@@ -58,7 +62,7 @@ export const ProductGrid: React.FC = () => {
                 : 'bg-transparent text-brand-text border-transparent hover:border-brand-text'
               }`}
             >
-              {f === 'all' ? 'ВСЕ' : f === 'apparel' ? 'ОДЕЖДА' : 'СНАРЯЖЕНИЕ'}
+              {f === 'all' ? t.filterAll : f === 'apparel' ? t.filterApparel : t.filterGear}
             </button>
           ))}
         </div>
@@ -95,6 +99,12 @@ export const ProductGrid: React.FC = () => {
 };
 
 const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ product, viewMode }) => {
+  const { lang, currency } = useStore();
+  const t = UI_TEXT[lang];
+  const displayName = getProductName(product, lang);
+  const displayDesc = getProductDescription(product, lang);
+  const displayPrice = formatMoney(getProductPrice(product, currency), currency);
+
   // Размеры принадлежат вещи: у ремня это S–XL по цифре W на джинсах, у
   // контейнера размера нет вовсе. Общий список SIZES остался запасным путём
   // для товара, у которого размеры не заданы.
@@ -108,7 +118,7 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
   const { addItemToCart } = useCartManagement();
 
   const handleAddToCart = () => {
-    const sizeToAdd = hasSizes ? activeSize : 'ЕДИНЫЙ РАЗМЕР';
+    const sizeToAdd = hasSizes ? activeSize : t.oneSize;
     addItemToCart(product, sizeToAdd);
   };
 
@@ -127,14 +137,14 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
            {product.images.length > 0 ? (
              <img 
                src={product.images[activeImageIndex] || product.images[0]} 
-               alt={product.name}
+               alt={displayName}
                className="w-full h-full object-cover transition-all duration-500"
              />
            ) : (
-             <div className="w-full h-full flex items-center justify-center bg-brand-text/10 text-[10px] font-bold">НЕТ ФОТО</div>
+             <div className="w-full h-full flex items-center justify-center bg-brand-text/10 text-[10px] font-bold">{t.noPhoto}</div>
            )}
             <div className="absolute top-2 left-2 bg-brand-text text-brand-bg text-[10px] font-bold px-2 py-1">
-              {product.price}₽
+              {displayPrice}
             </div>
 
             {product.images.length > 1 && (
@@ -155,11 +165,11 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
         <div className="p-6 flex flex-col flex-grow justify-between">
           <div>
             <div className="flex justify-between items-start mb-2">
-              <h3 className="font-black uppercase text-xl md:text-2xl leading-none">{product.name}</h3>
-              <span className="text-[10px] font-bold mono opacity-40 hidden sm:block">АРТ. {product.id}</span>
+              <h3 className="font-black uppercase text-xl md:text-2xl leading-none">{displayName}</h3>
+              <span className="text-[10px] font-bold mono opacity-40 hidden sm:block">{t.skuPrefix} {product.id}</span>
             </div>
             <p className="text-xs font-bold uppercase opacity-60 max-w-xl mb-6 leading-relaxed">
-              {product.description}
+              {displayDesc}
             </p>
           </div>
 
@@ -186,7 +196,7 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
                 onClick={handleAddToCart}
                 className="bg-brand-text text-brand-bg px-8 py-3 font-black uppercase tracking-widest text-xs hover:opacity-90 transition-all active:scale-[0.98]"
              >
-                В КОРЗИНУ
+                {t.addToCart}
              </button>
           </div>
         </div>
@@ -194,7 +204,7 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
         {viewerOpen && (
           <PhotoViewer
             images={product.images}
-            alt={product.name}
+            alt={displayName}
             startIndex={activeImageIndex}
             onClose={() => setViewerOpen(false)}
           />
@@ -206,8 +216,8 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
   return (
     <div className="border-r-2 border-b-2 border-brand-text p-3 md:p-8 flex flex-col product-card-glass group transition-all hover:bg-brand-bg/70 relative">
       <div className="mb-2 md:mb-4 flex justify-between items-center text-[8px] md:text-[10px] font-bold uppercase mono opacity-50">
-        <span>{product.category === 'apparel' || product.category === 'longsleeve' ? 'ОДЕЖДА' : 'СНАРЯЖЕНИЕ'}</span>
-        <span className="hidden md:inline">{isGear ? 'КОЖА' : '230 Г/М²'}</span>
+        <span>{product.category === 'apparel' || product.category === 'longsleeve' ? t.badgeApparel : t.badgeGear}</span>
+        <span className="hidden md:inline">{isGear ? t.badgeLeather : t.badgeCotton}</span>
       </div>
 
       <div 
@@ -220,11 +230,11 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
         {product.images.length > 0 ? (
             <img 
               src={product.images[activeImageIndex] || product.images[0]} 
-              alt={product.name}
+              alt={displayName}
               className="w-full h-full object-cover transition-all duration-500 scale-[1.01]"
             />
         ) : (
-            <div className="w-full h-full flex items-center justify-center bg-brand-text/10 font-bold uppercase text-xs">НЕТ ФОТО</div>
+            <div className="w-full h-full flex items-center justify-center bg-brand-text/10 font-bold uppercase text-xs">{t.noPhoto}</div>
         )}
 
         {product.images.length > 1 && (
@@ -244,10 +254,10 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
       
       <div className="flex flex-col md:flex-row justify-between items-start mb-2 md:mb-4 gap-1">
         <div>
-          <h3 className="font-black uppercase text-sm md:text-2xl tracking-tighter leading-none mb-1 break-words w-full">{product.name}</h3>
-          <p className="text-[9px] md:text-[10px] font-bold uppercase opacity-60 line-clamp-2 leading-tight h-auto md:h-8 hidden md:block">{product.description}</p>
+          <h3 className="font-black uppercase text-sm md:text-2xl tracking-tighter leading-none mb-1 break-words w-full">{displayName}</h3>
+          <p className="text-[9px] md:text-[10px] font-bold uppercase opacity-60 line-clamp-2 leading-tight h-auto md:h-8 hidden md:block">{displayDesc}</p>
         </div>
-        <span className="font-black text-sm md:text-2xl tracking-tighter">{product.price}₽</span>
+        <span className="font-black text-sm md:text-2xl tracking-tighter">{displayPrice}</span>
       </div>
 
       <div className="mt-auto">
@@ -273,7 +283,7 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
             onClick={handleAddToCart}
             className="w-full bg-brand-text text-brand-bg py-3 md:py-4 font-black uppercase tracking-widest text-[10px] md:text-xs flex justify-center md:justify-between px-2 md:px-6 items-center border-2 border-brand-text md:brutalist-shadow-sm hover:md:translate-x-[-2px] hover:md:translate-y-[-2px] hover:md:shadow-[4px_4px_0px_0px_var(--color-border)] active:translate-x-0 active:translate-y-0 active:shadow-none transition-all"
         >
-            <span>В КОРЗИНУ</span>
+            <span>{t.addToCart}</span>
             <svg className="hidden md:block" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
             <path d="M5 12h14m-7-7l7 7-7 7" />
             </svg>
@@ -282,7 +292,7 @@ const ProductCard: React.FC<{ product: Product; viewMode: ViewMode }> = ({ produ
       {viewerOpen && (
         <PhotoViewer
           images={product.images}
-          alt={product.name}
+          alt={displayName}
           startIndex={activeImageIndex}
           onClose={() => setViewerOpen(false)}
         />

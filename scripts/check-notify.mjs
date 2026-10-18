@@ -25,8 +25,8 @@ const check = (name, ok, detail = '') => {
 };
 
 async function withServer(env, run) {
-  const child = spawn('node', ['server.ts'], {
-    env: { ...process.env, PORT: String(PORT), ...env },
+  const child = spawn('npx', ['tsx', 'server.ts'], {
+    env: { ...process.env, PORT: String(PORT), NODE_ENV: 'production', ...env },
     stdio: 'ignore',
   });
   try {

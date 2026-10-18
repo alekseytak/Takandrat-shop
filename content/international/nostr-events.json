@@ -1,0 +1,365 @@
+{
+  "npub": "npub1vvzh43xykcph8ajthsxhd2calhudv3dp25pj7eu5672729sxl3gsz46z7c",
+  "pubkey": "63057ac4c4b60373f64bbc0d76ab1dfdf8d645a155032f6794d795e51606fc51",
+  "shopstrMarketplaceUrl": "https://shopstr.store/marketplace/npub1vvzh43xykcph8ajthsxhd2calhudv3dp25pj7eu5672729sxl3gsz46z7c",
+  "njumpProfileUrl": "https://njump.me/npub1vvzh43xykcph8ajthsxhd2calhudv3dp25pj7eu5672729sxl3gsz46z7c",
+  "generatedAt": "2026-10-18T10:15:29.664Z",
+  "events": [
+    {
+      "id": "23153b25724804a4bb7d24bc57166ecd0f5b4370b34b84b5f8ebe3d479c3419d",
+      "pubkey": "63057ac4c4b60373f64bbc0d76ab1dfdf8d645a155032f6794d795e51606fc51",
+      "created_at": 1792318527,
+      "kind": 0,
+      "tags": [],
+      "content": "{\"name\":\"takandrat\",\"display_name\":\"TAK & RAT // Leather & Textile Atelier\",\"about\":\"Equipment for an era of uncertainty. Hand-stitched vegetable-tanned leather & 230 gsm heavyweight cotton. Analog control. Direct SOL / TON / USDT checkout & worldwide shipping.\",\"website\":\"https://takandrat-shop.vercel.app/?lang=en&currency=usd\",\"picture\":\"https://takandrat-shop.vercel.app/products/web/01.webp\",\"banner\":\"https://takandrat-shop.vercel.app/products/web/18.webp\"}",
+      "sig": "793ac5f71b4d7b1dc1e707f880a19cad48b365215cf28ea63b3959216ac06ee393eccb50582390fadad28eda47e0f86368ab80a69a92a6878938d47e1301b582"
+    },
+    {
+      "id": "1f606cc877591ffa55f7e421ca35273adcefad4354bba47cb059ca3268a5ff12",
+      "pubkey": "63057ac4c4b60373f64bbc0d76ab1dfdf8d645a155032f6794d795e51606fc51",
+      "created_at": 1792318528,
+      "kind": 30402,
+      "tags": [
+        [
+          "d",
+          "takandrat-ch-01-object-04"
+        ],
+        [
+          "title",
+          "Card Container. Object #04 — Hand-Stitched Veg-Tan Leather"
+        ],
+        [
+          "summary",
+          "Two compartments for two cards. Vegetable-tanned leather (bark tannins, no chromium), hand saddle-stitched with waxed thread."
+        ],
+        [
+          "price",
+          "65",
+          "USD"
+        ],
+        [
+          "location",
+          "Saint Petersburg / Worldwide Shipping"
+        ],
+        [
+          "status",
+          "active"
+        ],
+        [
+          "image",
+          "https://takandrat-shop.vercel.app/products/web/01.webp"
+        ],
+        [
+          "image",
+          "https://takandrat-shop.vercel.app/products/web/02.webp"
+        ],
+        [
+          "image",
+          "https://takandrat-shop.vercel.app/products/web/03.webp"
+        ],
+        [
+          "t",
+          "edc"
+        ],
+        [
+          "t",
+          "leather"
+        ],
+        [
+          "t",
+          "wallet"
+        ],
+        [
+          "t",
+          "cardholder"
+        ],
+        [
+          "t",
+          "handcrafted"
+        ],
+        [
+          "t",
+          "shopstr"
+        ]
+      ],
+      "content": "Two compartments. Built strictly for two cards — not for \"everything at once\".\n\nVegetable-tanned leather: bark tannins instead of chromium. Breathable, no chemical odor, darkens and ages with use.\n\nHand-sewn with waxed thread, burnished edges: no glue or lining needed, the single piece holds the structure.\n\nCrafted in Saint Petersburg by Alexey (TAK & RAT Atelier).\n\nDirect Crypto Checkout (SOL / TON / USDT) & Worldwide Tracked Shipping:\n\nhttps://takandrat-shop.vercel.app/?lang=en&currency=usd",
+      "sig": "82782fcf497dd6eac21a6edf0fc568d7316aaaf08afc1c7cb6db9acecb0eaf41f4fcbd22b7633a6f46dc5a6692779d35b568add4e2f4b54440bb4df203a91446"
+    },
+    {
+      "id": "a06396ad73a710830c3e83b30a6471d79cf449fdda00b123847240114ee051f4",
+      "pubkey": "63057ac4c4b60373f64bbc0d76ab1dfdf8d645a155032f6794d795e51606fc51",
+      "created_at": 1792318529,
+      "kind": 30402,
+      "tags": [
+        [
+          "d",
+          "takandrat-ch-09-object-09"
+        ],
+        [
+          "title",
+          "Double Card Container. Object #09 — Bifold Veg-Tan Leather"
+        ],
+        [
+          "summary",
+          "Bifold card container: two opposing compartments so cards lie flat rather than stacked. Hand-stitched vegetable-tanned leather."
+        ],
+        [
+          "price",
+          "85",
+          "USD"
+        ],
+        [
+          "location",
+          "Saint Petersburg / Worldwide Shipping"
+        ],
+        [
+          "status",
+          "active"
+        ],
+        [
+          "image",
+          "https://takandrat-shop.vercel.app/products/web/18.webp"
+        ],
+        [
+          "image",
+          "https://takandrat-shop.vercel.app/products/web/19.webp"
+        ],
+        [
+          "image",
+          "https://takandrat-shop.vercel.app/products/web/20.webp"
+        ],
+        [
+          "t",
+          "edc"
+        ],
+        [
+          "t",
+          "leather"
+        ],
+        [
+          "t",
+          "bifold"
+        ],
+        [
+          "t",
+          "wallet"
+        ],
+        [
+          "t",
+          "handcrafted"
+        ],
+        [
+          "t",
+          "shopstr"
+        ]
+      ],
+      "content": "Bifold architecture: two opposing compartments instead of one, cards lie flat rather than stacked.\n\nVegetable-tanned leather: bark tannins instead of chromium. Breathable, no chemical odor, darkens and ages with use.\n\nHand-sewn with waxed thread, burnished edges: no glue or lining needed, the single piece holds the structure.\n\nCrafted in Saint Petersburg by Alexey (TAK & RAT Atelier).\n\nDirect Crypto Checkout (SOL / TON / USDT) & Worldwide Tracked Shipping:\n\nhttps://takandrat-shop.vercel.app/?lang=en&currency=usd",
+      "sig": "6f67fcd734679cfe0160352056fcee1d0e3a160c4608ad67e6d98151f6d4f50053e2f3e25c4d02ab74d2b91c7153354e271021050223aedabd255d1f413d8eb5"
+    },
+    {
+      "id": "fa7c8790a51eba29d58009ae7cd32ad03f3bd33ddaf34d8694ee8f80f89ba3c1",
+      "pubkey": "63057ac4c4b60373f64bbc0d76ab1dfdf8d645a155032f6794d795e51606fc51",
+      "created_at": 1792318530,
+      "kind": 30402,
+      "tags": [
+        [
+          "d",
+          "takandrat-l-01-object-27"
+        ],
+        [
+          "title",
+          "Fire Container (BIC Case). Object #27 — Veg-Tan Leather EDC"
+        ],
+        [
+          "summary",
+          "Precision-molded vegetable-tanned leather sleeve for a full-size BIC lighter with keyring loop. Hand saddle-stitched."
+        ],
+        [
+          "price",
+          "35",
+          "USD"
+        ],
+        [
+          "location",
+          "Saint Petersburg / Worldwide Shipping"
+        ],
+        [
+          "status",
+          "active"
+        ],
+        [
+          "image",
+          "https://takandrat-shop.vercel.app/products/web/06.webp"
+        ],
+        [
+          "image",
+          "https://takandrat-shop.vercel.app/products/web/34.webp"
+        ],
+        [
+          "image",
+          "https://takandrat-shop.vercel.app/products/web/35.webp"
+        ],
+        [
+          "t",
+          "edc"
+        ],
+        [
+          "t",
+          "lighter"
+        ],
+        [
+          "t",
+          "bic"
+        ],
+        [
+          "t",
+          "leather"
+        ],
+        [
+          "t",
+          "bushcraft"
+        ],
+        [
+          "t",
+          "shopstr"
+        ]
+      ],
+      "content": "Body molded for a standard full-size BIC lighter. Not \"universal\" — built to exact tolerance so the lighter sits tight.\n\nVegetable-tanned leather, hand saddle-stitched. Darkens and ages over time — the shell outlives the disposable core.\n\nKeyring attachment. Crafted in Saint Petersburg by Alexey (TAK & RAT Atelier).\n\nDirect Crypto Checkout (SOL / TON / USDT) & Worldwide Tracked Shipping:\n\nhttps://takandrat-shop.vercel.app/?lang=en&currency=usd",
+      "sig": "db8eecf9b995e1dc82debe090ac0ff44c20c2923ab08681e5ddafe06313c74db6a5a09a691ddf8a03577ecb7ee77fc7422d46dd8562a83ae71e4c5910aa6668d"
+    },
+    {
+      "id": "67fd46aa12c616c2980a4d8c157183297bd980505e8c845bcad7d27e898d55eb",
+      "pubkey": "63057ac4c4b60373f64bbc0d76ab1dfdf8d645a155032f6794d795e51606fc51",
+      "created_at": 1792318531,
+      "kind": 30402,
+      "tags": [
+        [
+          "d",
+          "takandrat-s-07-belt-r07"
+        ],
+        [
+          "title",
+          "35mm Single-Piece Full-Grain Leather Belt R-07 + Solid Brass Buckle"
+        ],
+        [
+          "summary",
+          "Single-piece 35mm (1.38\") vegetable-tanned strap with solid cast brass buckle. Sized by denim waist W30–W40."
+        ],
+        [
+          "price",
+          "110",
+          "USD"
+        ],
+        [
+          "location",
+          "Saint Petersburg / Worldwide Shipping"
+        ],
+        [
+          "status",
+          "active"
+        ],
+        [
+          "image",
+          "https://takandrat-shop.vercel.app/products/web/07.webp"
+        ],
+        [
+          "t",
+          "belt"
+        ],
+        [
+          "t",
+          "leather"
+        ],
+        [
+          "t",
+          "denim"
+        ],
+        [
+          "t",
+          "brass"
+        ],
+        [
+          "t",
+          "heritage"
+        ],
+        [
+          "t",
+          "shopstr"
+        ]
+      ],
+      "content": "Single-piece full-grain leather strap, 35 mm (1.38\") wide. Not laminated from layers: uniform thickness along the entire length prevents splitting at the bend.\n\nVegetable-tanned with bark and leaf tannins instead of chromium. Solid cast brass buckle.\n\nSized by denim waist W: S — W30–W31 (76–79 cm), M — W32–W33 (81–84 cm), L — W34–W36 (86–91 cm), XL — W38–W40 (96–102 cm).\n\nDirect Crypto Checkout (SOL / TON / USDT) & Worldwide Tracked Shipping:\n\nhttps://takandrat-shop.vercel.app/?lang=en&currency=usd",
+      "sig": "35b5fc0c6cdf9a20460968b9eac9fbe4309dbbec0d115ffe6bbe58f346b959d6ec453ae5122a2c27bb9bf223e315352aade882185d8c8515ae69e0bd94e4130c"
+    },
+    {
+      "id": "7f4abfb5c3952f842b02c8ca5298d6dffd81c709364d5cbfdde268fbd02b86bd",
+      "pubkey": "63057ac4c4b60373f64bbc0d76ab1dfdf8d645a155032f6794d795e51606fc51",
+      "created_at": 1792318532,
+      "kind": 30402,
+      "tags": [
+        [
+          "d",
+          "takandrat-tr-01-ash-grey"
+        ],
+        [
+          "title",
+          "Heavyweight Base Layer ASH GREY — 230 GSM 100% Cotton Longsleeve"
+        ],
+        [
+          "summary",
+          "Heavyweight 230 gsm 100% cotton longsleeve. Reinforced collar rib, straight architectural cut. Sizes M, L, XL."
+        ],
+        [
+          "price",
+          "65",
+          "USD"
+        ],
+        [
+          "location",
+          "Saint Petersburg / Worldwide Shipping"
+        ],
+        [
+          "status",
+          "active"
+        ],
+        [
+          "image",
+          "https://takandrat-shop.vercel.app/products/web/08.webp"
+        ],
+        [
+          "image",
+          "https://takandrat-shop.vercel.app/products/web/25.webp"
+        ],
+        [
+          "image",
+          "https://takandrat-shop.vercel.app/products/web/26.webp"
+        ],
+        [
+          "t",
+          "apparel"
+        ],
+        [
+          "t",
+          "heavyweight"
+        ],
+        [
+          "t",
+          "cotton"
+        ],
+        [
+          "t",
+          "longsleeve"
+        ],
+        [
+          "t",
+          "streetwear"
+        ],
+        [
+          "t",
+          "shopstr"
+        ]
+      ],
+      "content": "Heavyweight 230 gsm 100% cotton. The density is stated because it defines how the garment holds its geometry and how long it survives.\n\nReinforced collar rib retains tension after washes. Straight cut: does not pull, does not cling, requires no tailoring.\n\nSizes M, L, XL. Crafted in Saint Petersburg by TAK & RAT Atelier.\n\nDirect Crypto Checkout (SOL / TON / USDT) & Worldwide Tracked Shipping:\n\nhttps://takandrat-shop.vercel.app/?lang=en&currency=usd",
+      "sig": "c370d5a136b2e62c921f798f0fdf6839794d4ec4cb5af207959f72dc479a94588ef2cb7b9437cca980941ac3429a78849bad708abd9d257a051cbfbaecd9c790"
+    }
+  ]
+}

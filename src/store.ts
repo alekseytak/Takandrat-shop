@@ -2,6 +2,29 @@
 import { create } from 'zustand';
 import { CartItem, Product, UserProfile, AiMetrics } from './types';
 import { adminService } from './services/adminService';
+import { Lang, Currency } from './lib/i18n';
+
+const getInitialLang = (): Lang => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('lang')?.toLowerCase();
+    if (q === 'en') return 'en';
+    if (q === 'ru') return 'ru';
+  } catch {}
+  return 'ru';
+};
+
+const getInitialCurrency = (lang: Lang): Currency => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('currency')?.toUpperCase();
+    if (q === 'USD' || q === 'EUR' || q === 'RUB') return q;
+  } catch {}
+  return lang === 'en' ? 'USD' : 'RUB';
+};
+
+const initialLang = getInitialLang();
+const initialCurrency = getInitialCurrency(initialLang);
 
 interface GlobalStore {
   view: 'shop' | 'corporate' | 'cart' | 'checkout' | 'chat' | 'admin' | 'info';
@@ -9,6 +32,12 @@ interface GlobalStore {
   
   theme: 'light' | 'dark';
   toggleTheme: () => void;
+
+  lang: Lang;
+  currency: Currency;
+  setLang: (lang: Lang) => void;
+  setCurrency: (currency: Currency) => void;
+  cycleLocale: () => void;
 
   cart: CartItem[];
   addToCart: (product: Product, size: string) => void;
@@ -29,6 +58,16 @@ export const useStore = create<GlobalStore>((set, get) => ({
   
   theme: 'light',
   toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
+
+  lang: initialLang,
+  currency: initialCurrency,
+  setLang: (lang) => set({ lang, currency: lang === 'en' && get().currency === 'RUB' ? 'USD' : lang === 'ru' ? 'RUB' : get().currency }),
+  setCurrency: (currency) => set({ currency, lang: currency === 'RUB' ? 'ru' : 'en' }),
+  cycleLocale: () => set((state) => {
+    if (state.lang === 'ru') return { lang: 'en', currency: 'USD' };
+    if (state.currency === 'USD') return { lang: 'en', currency: 'EUR' };
+    return { lang: 'ru', currency: 'RUB' };
+  }),
 
   cart: [],
   addToCart: (product, size) => set((state) => {
