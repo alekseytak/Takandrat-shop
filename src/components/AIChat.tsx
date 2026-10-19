@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '@/store';
-import { PRODUCTS, SIZES } from '@/constants';
+import { PRODUCTS } from '@/constants';
+import { getProductName, getProductPrice, formatMoney } from '@/lib/i18n';
 import { adminService } from '@/services/adminService';
 import { Product } from '../types';
 import { ASSISTANT_NAME, CLIENT_GREETING } from '../../api/_lib/shopPrompt';
@@ -23,6 +24,32 @@ type Message = {
   attachments?: Attachment[];
 };
 
+const ChatProduct: React.FC<{ product: Product }> = ({ product }) => {
+  const { addToCart, removeFromCart, cart, lang, currency } = useStore();
+  const sizes = product.sizes ?? [];
+  const [size, setSize] = useState('');
+  const [status, setStatus] = useState('');
+  const matching = cart.filter(item => item.id === product.id);
+  return <div className="mt-4 w-64 border-2 border-brand-text bg-brand-bg p-3 brutalist-shadow" data-testid="chat-product">
+    <img src={product.images[0]} className="w-full h-32 object-cover mb-2 border border-brand-text" alt={getProductName(product, lang)} />
+    <h4 className="font-black uppercase text-[10px] mb-2">{getProductName(product, lang)}</h4>
+    <p className="text-xs mb-2">{formatMoney(getProductPrice(product, currency), currency)}</p>
+    {sizes.length > 0 && <select aria-label={lang === 'en' ? 'Size' : 'Размер'} value={size} onChange={e => setSize(e.target.value)} className="w-full border-2 border-brand-text bg-brand-bg mb-2 p-2 text-xs">
+      <option value="">{lang === 'en' ? 'Choose size' : 'Выберите размер'}</option>
+      {sizes.map(value => <option key={value} value={value}>{value}</option>)}
+    </select>}
+    <button disabled={(sizes.length > 0 && !sizes.includes(size)) || product.isVisible === false} onClick={() => {
+      addToCart(product, sizes.length ? size : 'ЕДИНЫЙ РАЗМЕР');
+      setStatus(lang === 'en' ? 'Added to cart' : 'Добавлено в корзину');
+    }} className="w-full bg-brand-text text-brand-bg py-2 text-[9px] font-black uppercase disabled:opacity-40">{lang === 'en' ? 'Add one to cart +' : 'Добавить в корзину +1'}</button>
+    {matching.map(item => <button key={item.selectedSize} onClick={() => {
+      removeFromCart(item.id, item.selectedSize);
+      setStatus(lang === 'en' ? 'Line removed' : 'Позиция удалена');
+    }} className="w-full text-[10px] underline mt-2">{lang === 'en' ? 'Remove line' : 'Удалить позицию'}: {item.selectedSize} × {item.quantity}</button>)}
+    <p role="status" className="text-xs mt-2">{status}</p>
+  </div>;
+};
+
 export const AIChat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -32,7 +59,7 @@ export const AIChat: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { setView, addToCart, currentUser, setAiMetrics, lastAiMetrics } = useStore();
+  const { setView, removeFromCart, cart, lang, currency, currentUser, setAiMetrics, lastAiMetrics } = useStore();
 
   useEffect(() => {
     if (messages.length === 0) {
@@ -85,7 +112,9 @@ export const AIChat: React.FC = () => {
         detectedProduct = PRODUCTS.find(p => p.id === productId);
         if (!detectedProduct) {
           const liveProduct = await adminService.searchProducts(productId);
-          detectedProduct = liveProduct.find(p => p.id === productId || String(p.dbId) === productId);
+          const found = liveProduct.find(p => p.id === productId || String(p.dbId) === productId);
+          // Одна и та же вещь из чата и витрины должна иметь один ключ корзины.
+          detectedProduct = found ? (PRODUCTS.find(p => p.name === found.name) ?? found) : undefined;
         }
       }
 
@@ -228,13 +257,7 @@ export const AIChat: React.FC = () => {
                 </div>
               )}
             </div>
-            {msg.productAction && (
-              <div className="mt-4 w-64 border-2 border-brand-text bg-brand-bg p-3 brutalist-shadow animate-in zoom-in duration-500">
-                <img src={msg.productAction.images[0]} className="w-full h-32 object-cover grayscale mb-2 border border-brand-text" alt="" />
-                <h4 className="font-black uppercase text-[10px] mb-2">{msg.productAction.name}</h4>
-                <button onClick={() => addToCart(msg.productAction!, SIZES[1])} className="w-full bg-brand-text text-brand-bg py-2 text-[9px] font-black uppercase hover:opacity-80 transition-opacity">ДОБАВИТЬ В СНАРЯЖЕНИЕ +</button>
-              </div>
-            )}
+            {msg.productAction && <ChatProduct product={msg.productAction} />}
           </div>
         ))}
         {isLoading && (
@@ -268,6 +291,15 @@ export const AIChat: React.FC = () => {
       )}
 
       <div className="p-4 border-t-2 border-brand-text bg-brand-bg">
+        <details className="mb-3 border-2 border-brand-text p-2" data-testid="chat-cart">
+          <summary className="cursor-pointer text-xs font-black uppercase">{lang === 'en' ? 'Your cart' : 'Ваша корзина'} · {cart.reduce((sum, item) => sum + item.quantity, 0)}</summary>
+          {cart.length === 0 && <p className="text-xs mt-2">{lang === 'en' ? 'Cart is empty' : 'Корзина пуста'}</p>}
+          {cart.map(item => <div key={`${item.id}-${item.selectedSize}`} className="flex justify-between gap-2 items-center py-2 text-xs border-b border-brand-text/20">
+            <span>{getProductName(item, lang)} / {item.selectedSize} · {item.quantity} × {formatMoney(getProductPrice(item, currency), currency)}</span>
+            <button type="button" onClick={() => removeFromCart(item.id, item.selectedSize)} className="font-black underline">{lang === 'en' ? 'Remove line' : 'Удалить позицию'}</button>
+          </div>)}
+          {cart.length > 0 && <button type="button" onClick={() => setView('cart')} className="text-xs underline mt-2">{lang === 'en' ? 'Review cart' : 'Перейти в корзину'}</button>}
+        </details>
         <form onSubmit={handleSendMessage} className="flex gap-2">
           <input autoFocus value={inputValue} onChange={(e) => setInputValue(e.target.value)}
             placeholder="ВВЕДИТЕ ЗАПРОС ИЛИ ПЕРЕТАЩИТЕ СЮДА ФАЙЛЫ..."
