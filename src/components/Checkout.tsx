@@ -168,7 +168,7 @@ export const Checkout: React.FC = () => {
           <h3 className="font-black uppercase text-sm mb-3 tracking-widest">{t.paymentHeader}</h3>
           {payment?.card ? <p className="text-sm font-black">{t.cardLabel}: {payment.card}</p> : <p className="text-xs font-bold opacity-60">{t.cardNotSet}</p>}
           {payment?.cardRecipient && <p className="text-xs font-bold mt-1">{t.recipientLabel}: {payment.cardRecipient}</p>}
-          <div className="mt-4 pt-3 border-t border-brand-text/20 space-y-3">
+          {lang === 'en' && <div className="mt-4 pt-3 border-t border-brand-text/20 space-y-3">
             <p className="text-[10px] font-black uppercase tracking-widest">{t.cryptoWalletsTitle}</p>
             {walletsToShow.map((w) => (
               <div key={w.label} className="flex flex-col gap-1">
@@ -187,7 +187,7 @@ export const Checkout: React.FC = () => {
                 </code>
               </div>
             ))}
-          </div>
+          </div>}
           <p className="mt-4 text-[9px] font-bold uppercase opacity-60 leading-tight">{t.checkoutNote}</p>
         </div>
         {error && <p role="alert" className="border-2 border-red-600 p-3 text-xs font-bold text-red-600">{error}</p>}

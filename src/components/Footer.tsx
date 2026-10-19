@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { BRAND_NAME } from '../constants';
+import { useStore } from '@/store';
 
 type ModalType = 'delivery' | 'payment' | 'return' | 'contacts' | 'donation' | 'legal' | null;
 
 export const Footer: React.FC = () => {
+  const lang = useStore(state => state.lang);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -102,7 +104,7 @@ export const Footer: React.FC = () => {
               <ul className="space-y-2 font-bold uppercase text-[9px] md:text-[10px] opacity-60 text-brand-text text-left">
                 <li><a href="https://t.me/takandrat_bot" target="_blank" className="hover:underline">Telegram</a></li>
                 <li><button onClick={() => setActiveModal('contacts')} className="hover:underline">Контакты</button></li>
-                <li><button onClick={() => setActiveModal('donation')} className="hover:underline opacity-20">Поддержка</button></li>
+                {lang === 'en' && <li><button onClick={() => setActiveModal('donation')} className="hover:underline opacity-20">Support</button></li>}
               </ul>
             </div>
           </div>
@@ -118,7 +120,7 @@ export const Footer: React.FC = () => {
         </div>
       </footer>
 
-      {activeModal && (
+      {activeModal && (activeModal !== 'donation' || lang === 'en') && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6" onClick={closeModal}>
           <div className="bg-brand-bg border-2 border-brand-text p-6 md:p-8 max-w-md w-full relative brutalist-shadow text-brand-text" onClick={(e) => e.stopPropagation()}>
             <button onClick={closeModal} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center border-2 border-brand-text hover:bg-brand-text hover:text-brand-bg transition-colors">✕</button>
